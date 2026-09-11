@@ -1,0 +1,282 @@
+/* Sportmerch · Design System Foundations
+   Source: uploads/Sportmerch CI.pdf
+   ------------------------------------------------------------------ */
+
+/* Adobe Fonts — Futura PT (primary brand font, served via Typekit kit qso4xte). */
+@import url('https://use.typekit.net/qso4xte.css');
+
+/* Futura Cyrillic — fallback, locally hosted from fonts/. Used if Typekit fails. */
+@font-face {
+  font-family: 'Futura Cyrillic';
+  src: url('fonts/FuturaCyrillicLight.ttf') format('truetype');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Futura Cyrillic';
+  src: url('fonts/FuturaCyrillicBook.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Futura Cyrillic';
+  src: url('fonts/FuturaCyrillicMedium.ttf') format('truetype');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Futura Cyrillic';
+  src: url('fonts/FuturaCyrillicDemi.ttf') format('truetype');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Futura Cyrillic';
+  src: url('fonts/FuturaCyrillicBold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Futura Cyrillic';
+  src: url('fonts/FuturaCyrillicExtraBold.ttf') format('truetype');
+  font-weight: 800; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Futura Cyrillic';
+  src: url('fonts/FuturaCyrillicHeavy.ttf') format('truetype');
+  font-weight: 900; font-style: normal; font-display: swap;
+}
+
+:root {
+  /* ---------- BRAND COLORS (from CI) ---------- */
+  --sm-navy:        #1e3a5f;   /* Primary deep navy — wordmark, dominant surface */
+  --sm-red:         #d72638;   /* Primary red — energy, action, "S" of mark */
+  --sm-yellow:      #f4a900;   /* Accent — highlights, podium, awards */
+  --sm-grey:        #d1d5db;   /* Neutral — dividers, disabled, subtle UI */
+  --sm-white:       #ffffff;
+
+  /* ---------- EXTENDED PALETTE (derived) ---------- */
+  --sm-navy-900:    #0f1d31;
+  --sm-navy-800:    #142a47;
+  --sm-navy-700:    #1e3a5f;   /* base */
+  --sm-navy-600:    #294e7c;
+  --sm-navy-500:    #3a6499;
+  --sm-navy-400:    #6f8eb5;
+  --sm-navy-300:    #a7bcd4;
+  --sm-navy-200:    #d3deeb;
+  --sm-navy-100:    #eaf0f7;
+
+  --sm-red-700:     #a81c2a;
+  --sm-red-600:     #c2202f;
+  --sm-red-500:     #d72638;   /* base */
+  --sm-red-400:     #e25563;
+  --sm-red-300:     #ed8b94;
+  --sm-red-200:     #f6c2c8;
+  --sm-red-100:     #fde8ea;
+
+  --sm-yellow-700: #b87f00;
+  --sm-yellow-500: #f4a900;    /* base */
+  --sm-yellow-300: #ffd166;
+  --sm-yellow-100: #fff3d6;
+
+  /* ---------- NEUTRALS ---------- */
+  --sm-ink:         #0b0f17;   /* near-black body text */
+  --sm-ink-2:       #2a2f3a;
+  --sm-grey-900:    #1f2430;
+  --sm-grey-800:    #353b48;
+  --sm-grey-700:    #4b525e;
+  --sm-grey-600:    #6b7280;
+  --sm-grey-500:    #9aa1ad;
+  --sm-grey-400:    #c0c5cf;
+  --sm-grey-300:    #d1d5db;   /* CI neutral base */
+  --sm-grey-200:    #e5e7eb;
+  --sm-grey-100:    #f3f4f6;
+  --sm-grey-50:     #f8f9fb;
+
+  /* ---------- SEMANTIC TOKENS ---------- */
+  --bg:             var(--sm-white);
+  --bg-alt:         var(--sm-grey-50);
+  --bg-inverse:     var(--sm-navy);
+  --bg-accent:      var(--sm-red);
+  --bg-signal:      var(--sm-yellow);   /* signal fill — headers, footers, ribbons */
+
+  --fg:             var(--sm-ink);
+  --fg-2:           var(--sm-grey-700);
+  --fg-3:           var(--sm-grey-600);
+  --fg-on-dark:     var(--sm-white);
+  --fg-on-red:      var(--sm-white);
+  --fg-link:        var(--sm-red);
+
+  --border:         var(--sm-grey-200);
+  --border-strong:  var(--sm-grey-300);
+  --border-ink:     var(--sm-ink);
+
+  --success:        #1f8a4c;
+  --warning:        var(--sm-yellow);
+  --danger:         var(--sm-red);
+  --info:           var(--sm-navy-500);
+
+  /* ---------- TYPOGRAPHY ---------- */
+  /* Futura PT (Adobe Fonts via kit qso4xte) — primary, per CI.
+     NB: this kit exposes the family as 'futura-pt-web-medium' (full weight
+     range 300–800 + italics), NOT plain 'futura-pt'. Keep that name first.
+     Falls back to local Futura Cyrillic, then system stacks. */
+  --font-display:   'futura-pt-web-medium', 'futura-pt-web', 'futura-pt', 'Futura Cyrillic', 'Futura PT', 'Futura', 'Trebuchet MS', system-ui, sans-serif;
+  --font-body:      'futura-pt-web-medium', 'futura-pt-web', 'futura-pt', 'Futura Cyrillic', 'Futura PT', 'Futura', system-ui, -apple-system, sans-serif;
+  --font-mono:      ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Weights */
+  --weight-book:    400;
+  --weight-medium:  500;
+  --weight-bold:    700;
+  --weight-xbold:   800;
+  --weight-black:   900;
+
+  /* Type scale — display weighted heavy, italic where impactful */
+  --fs-d1: clamp(56px, 7vw, 96px); /* @kind font */
+  --fs-d2: clamp(40px, 5vw, 64px); /* @kind font */
+  --fs-h1: 40px;
+  --fs-h2: 32px;
+  --fs-h3: 24px;
+  --fs-h4: 20px;
+  --fs-lg: 18px;
+  --fs-md: 16px;
+  --fs-sm: 14px;
+  --fs-xs: 12px;
+
+  --lh-tight: 1.02; /* @kind font */
+  --lh-snug:  1.15; /* @kind font */
+  --lh-body:  1.5; /* @kind font */
+
+  /* ---------- SPACING (4pt scale) ---------- */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ---------- RADII ---------- */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* ---------- SHADOWS / ELEVATION ---------- */
+  --shadow-1: 0 1px 2px rgba(11,15,23,.06), 0 1px 3px rgba(11,15,23,.04);
+  --shadow-2: 0 4px 10px rgba(11,15,23,.08), 0 2px 4px rgba(11,15,23,.04);
+  --shadow-3: 0 12px 28px rgba(11,15,23,.12), 0 4px 8px rgba(11,15,23,.06);
+  --shadow-red: 0 8px 20px rgba(215,38,56,.28);
+  --shadow-navy: 0 8px 20px rgba(30,58,95,.28);
+
+  /* ---------- MOTION ---------- */
+  --ease-out: cubic-bezier(.2,.8,.2,1); /* @kind other */
+  --ease-snap: cubic-bezier(.18,.89,.32,1.28); /* @kind other */
+  --dur-fast: 120ms; /* @kind other */
+  --dur-base: 200ms; /* @kind other */
+  --dur-slow: 360ms; /* @kind other */
+}
+
+/* ============ SEMANTIC ELEMENT STYLES ============ */
+html, body {
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Display + headings: italic, extra-bold, uppercase — echoing the wordmark.
+   The Sportmerch wordmark is ITALIC ALL-CAPS EXTRA BOLD.
+   Display heads should mimic this energy. */
+.sm-display, h1.sm-display {
+  font-family: var(--font-display);
+  font-weight: var(--weight-xbold);
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: var(--lh-tight);
+  font-size: var(--fs-d1);
+  color: var(--fg);
+}
+
+h1, .sm-h1 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-xbold);
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  line-height: var(--lh-snug);
+  font-size: var(--fs-h1);
+  margin: 0;
+}
+
+h2, .sm-h2 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-xbold);
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: var(--lh-snug);
+  font-size: var(--fs-h2);
+  margin: 0;
+}
+
+h3, .sm-h3 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  text-transform: none;
+  line-height: var(--lh-snug);
+  font-size: var(--fs-h3);
+  margin: 0;
+}
+
+h4, .sm-h4 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--fs-h4);
+  line-height: 1.25;
+  margin: 0;
+}
+
+p, .sm-p {
+  font-family: var(--font-body);
+  font-weight: var(--weight-book);
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  color: var(--fg);
+  margin: 0;
+}
+
+.sm-eyebrow {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--fs-xs);
+  color: var(--sm-red);
+}
+
+.sm-caption {
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+}
+
+.sm-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+a, .sm-link {
+  color: var(--fg-link);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+}
+a:hover { text-decoration: underline; text-underline-offset: 3px; }

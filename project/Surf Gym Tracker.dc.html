@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/sportmerch-design-system-019e03c0-b3e0-7169-84dd-db5fcb89cfa7/colors_and_type.css">
+<script src="_ds/sportmerch-design-system-019e03c0-b3e0-7169-84dd-db5fcb89cfa7/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#e9ecf1;font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+a,a:hover{color:var(--sm-red)}
+.sc{-ms-overflow-style:none;scrollbar-width:none}
+.sc::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:18px;padding:28px 16px 56px;box-sizing:border-box">
+
+<div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;max-width:430px">
+<div style="font-family:var(--font-display);font-weight:700;font-style:italic;text-transform:uppercase;letter-spacing:.1em;font-size:11px;color:var(--sm-red)">Surf Strength · iOS Prototyp</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:26px;line-height:1.05;color:var(--sm-navy)">Trainings-Tracker</div>
+<div style="font-size:12px;line-height:1.45;color:var(--fg-3)">Klickbar: Einheit starten, Sätze mit Gewicht, Wiederholungen und RPE loggen, Pausentimer, Core-Zyklus, Mobility, Plan und Verlauf.</div>
+</div>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" width="{{ devW }}" height="{{ devH }}" hint-size="402px,874px">
+<div style="height:100%;position:relative;display:flex;flex-direction:column;background:#f4f5f8;font-family:var(--font-body);color:var(--fg)">
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--sm-navy);padding:56px 20px 16px;color:#fff;flex:none">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+<div style="min-width:0">
+<div style="font-family:var(--font-display);font-weight:700;font-style:italic;text-transform:uppercase;letter-spacing:.1em;font-size:11px;color:var(--sm-yellow)">Block A · Wasserphase · Woche 1</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:29px;line-height:1;margin-top:6px">Freitag 11.9.</div>
+</div>
+<button onClick="{{ goProfil }}" style="flex:none;width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.24);color:#fff;font-family:var(--font-display);font-weight:800;font-style:italic;font-size:15px;cursor:pointer">JS</button>
+</div>
+<div style="display:flex;gap:8px;margin-top:14px">
+<div style="flex:1;background:rgba(255,255,255,.09);border-radius:8px;padding:8px 10px">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.62)">Bis Block B</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:18px">17 Tage</div>
+</div>
+<div style="flex:1;background:rgba(255,255,255,.09);border-radius:8px;padding:8px 10px">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.62)">Gym diese Woche</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:18px">{{ gymCount }} / 3</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSub }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--sm-navy);padding:56px 18px 14px;color:#fff;flex:none;display:flex;align-items:center;gap:12px">
+<button onClick="{{ back }}" style="flex:none;width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.09);color:#fff;font-size:17px;line-height:1;cursor:pointer">‹</button>
+<div style="flex:1;min-width:0">
+<div style="font-family:var(--font-display);font-weight:700;font-style:italic;text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--sm-yellow)">{{ headEyebrow }}</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:22px;line-height:1.08;margin-top:2px">{{ headTitle }}</div>
+</div>
+</div>
+</sc-if>
+
+<div class="sc" style="flex:1;overflow:auto;padding:14px 16px 96px">
+
+<sc-if value="{{ isHomeA }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="background:#fff;border:2px solid var(--sm-ink);border-radius:12px;overflow:hidden">
+<div style="padding:14px 16px 13px">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--sm-red);color:#fff;padding:3px 8px;border-radius:4px">Heute · A1</span>
+<span style="font-size:12px;color:var(--fg-3)">ca. 40 min · 17 Sätze</span>
+</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:22px;line-height:1.05;color:var(--sm-navy);margin-top:10px">Zug &amp; Schulter&shy;gesundheit</div>
+<p style="font-size:13px;line-height:1.45;color:var(--fg-2);margin-top:6px;text-wrap:pretty">Gegengewicht zum Paddeln: Der Schultergürtel wird beim Surfen den ganzen Tag nach vorne gezogen — hier ziehst du ihn zurück.</p>
+<div style="display:flex;gap:14px;margin-top:13px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--fg-3)"><span>RPE-Deckel 7</span><span>6 Übungen</span></div>
+</div>
+<button onClick="{{ startSession }}" style="width:100%;border:0;background:var(--sm-red);color:#fff;font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.04em;font-size:16px;padding:16px;cursor:pointer">{{ startLabel }}</button>
+</div>
+
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="display:flex;align-items:baseline;justify-content:space-between">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:14px;color:var(--sm-navy)">Wochenraster</div>
+<button onClick="{{ goPlan }}" style="border:0;background:none;color:var(--sm-red);font-size:12px;font-weight:500;cursor:pointer;padding:0">Ganze Woche ›</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px">
+<sc-for list="{{ week }}" as="d" hint-placeholder-count="7">
+<div style="{{ d.cellStyle }}">
+<div style="font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7">{{ d.dow }}</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:15px;margin-top:1px">{{ d.num }}</div>
+<div style="{{ d.dotStyle }}"></div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;gap:12px;margin-top:11px;font-size:10.5px;color:var(--fg-3)">
+<span style="display:flex;align-items:center;gap:4px"><i style="width:7px;height:7px;border-radius:999px;background:var(--success);display:block"></i>erledigt</span>
+<span style="display:flex;align-items:center;gap:4px"><i style="width:7px;height:7px;border-radius:999px;background:var(--sm-red);display:block"></i>heute</span>
+<span style="display:flex;align-items:center;gap:4px"><i style="width:7px;height:7px;border-radius:999px;background:var(--sm-grey-400);display:block"></i>offen</span>
+</div>
+</div>
+
+<div style="background:var(--sm-yellow);border-radius:12px;padding:14px 16px;color:var(--sm-navy)">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:14px">Täglich-Streak</div>
+<button onClick="{{ goCore }}" style="border:0;background:rgba(30,58,95,.14);color:var(--sm-navy);font-size:11px;font-weight:600;border-radius:999px;padding:6px 11px;cursor:pointer">Öffnen</button>
+</div>
+<div style="display:flex;gap:10px;margin-top:12px">
+<div style="flex:1;background:rgba(255,255,255,.6);border-radius:8px;padding:10px">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--sm-navy-800)">Core · Zyklus A</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:26px;line-height:1.1">{{ coreStreak }} Tage</div>
+<div style="font-size:11px;color:var(--sm-navy-800)">{{ coreTodayLabel }}</div>
+</div>
+<div style="flex:1;background:rgba(255,255,255,.6);border-radius:8px;padding:10px">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--sm-navy-800)">Mobility</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:26px;line-height:1.1">6 Tage</div>
+<div style="font-size:11px;color:var(--sm-navy-800)">{{ mobLabel }}</div>
+</div>
+</div>
+</div>
+
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="display:flex;align-items:baseline;justify-content:space-between">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:14px;color:var(--sm-navy)">Letzte Bestwerte</div>
+<button onClick="{{ goVerlauf }}" style="border:0;background:none;color:var(--sm-red);font-size:12px;font-weight:500;cursor:pointer;padding:0">Verlauf ›</button>
+</div>
+<div style="display:flex;flex-direction:column;margin-top:4px">
+<sc-for list="{{ records }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+<div style="flex:1;min-width:0">
+<div style="font-size:13.5px;font-weight:500">{{ r.name }}</div>
+<div style="font-size:11px;color:var(--fg-3)">{{ r.when }}</div>
+</div>
+<div style="text-align:right">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:16px;color:var(--sm-navy)">{{ r.value }}</div>
+<div style="font-size:11px;font-weight:600;color:var(--success)">{{ r.delta }}</div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSession }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow-1)">
+<div style="display:flex;align-items:baseline;justify-content:space-between">
+<div style="font-size:12px;color:var(--fg-3);white-space:nowrap;flex:none">Satz {{ doneCount }} von {{ totalCount }}</div>
+<div style="font-size:12px;color:var(--fg-3);white-space:nowrap;flex:none">{{ restCountLabel }}</div>
+</div>
+<div style="height:8px;border-radius:999px;background:var(--sm-grey-200);margin-top:9px;overflow:hidden">
+<div style="{{ progStyle }}"></div>
+</div>
+</div>
+
+<sc-for list="{{ exercises }}" as="ex" hint-placeholder-count="5">
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-1)">
+<div style="padding:12px 14px 10px;display:flex;align-items:flex-start;gap:10px">
+<div style="flex:1;min-width:0">
+<div style="font-size:11px;color:var(--fg-3)">{{ ex.target }}</div>
+<div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--sm-navy);margin-top:5px;line-height:1.2">{{ ex.name }}</div>
+</div>
+<button onClick="{{ ex.onInfo }}" style="flex:none;width:30px;height:30px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--sm-navy);font-family:var(--font-display);font-weight:800;font-style:italic;font-size:13px;cursor:pointer">i</button>
+</div>
+<div style="padding:0 14px 12px;display:flex;flex-direction:column;gap:7px">
+<sc-for list="{{ ex.sets }}" as="s" hint-placeholder-count="3">
+<div style="{{ s.rowStyle }}">
+<div style="width:12px;flex:none;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)">{{ s.num }}</div>
+<div style="flex:none;display:flex;align-items:center;background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+<button onClick="{{ s.onWDown }}" style="width:28px;height:34px;border:0;background:none;color:var(--sm-navy);font-size:16px;cursor:pointer">−</button>
+<div style="min-width:50px;text-align:center;font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--sm-navy)">{{ s.weight }}</div>
+<button onClick="{{ s.onWUp }}" style="width:28px;height:34px;border:0;background:none;color:var(--sm-navy);font-size:16px;cursor:pointer">+</button>
+</div>
+<button onClick="{{ s.onReps }}" style="flex:1;min-width:0;height:34px;border:1px solid var(--border);border-radius:8px;background:#fff;font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--sm-navy);cursor:pointer">{{ s.reps }}</button>
+<button onClick="{{ s.onRpe }}" style="{{ s.rpeStyle }}">{{ s.rpe }}</button>
+<button onClick="{{ s.onToggle }}" style="{{ s.checkStyle }}">✓</button>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+
+<div style="background:var(--sm-navy-100);border:1px solid var(--sm-navy-200);border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.5;color:var(--sm-navy-800)">Gewicht mit ±, Wiederholungen und RPE durch Antippen. Haken loggt den Satz und bietet den Pausentimer an — starten musst du ihn selbst.</div>
+<button onClick="{{ finishSession }}" style="width:100%;border:1.5px solid var(--sm-navy);border-radius:12px;background:none;color:var(--sm-navy);font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:15px;padding:14px;cursor:pointer">Einheit abschließen</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--fg-3)">{{ det.target }}</div>
+<p style="font-size:14px;line-height:1.5;margin-top:10px;text-wrap:pretty">{{ det.note }}</p>
+</div>
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px;color:var(--sm-navy)">Ausführung</div>
+<div style="display:flex;flex-direction:column;gap:9px;margin-top:10px">
+<sc-for list="{{ det.cues }}" as="c" hint-placeholder-count="3">
+<div style="display:flex;gap:9px;font-size:13.5px;line-height:1.45;color:var(--fg-2)"><span style="color:var(--sm-red);font-weight:700">—</span><span>{{ c.t }}</span></div>
+</sc-for>
+</div>
+</div>
+<div style="display:flex;gap:12px">
+<div style="flex:1;background:var(--sm-navy);border-radius:12px;padding:12px;color:#fff">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sm-yellow)">Letztes Mal</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:19px;margin-top:3px">{{ det.last }}</div>
+</div>
+<div style="flex:1;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-3)">Alternative</div>
+<div style="font-size:13px;font-weight:500;color:var(--sm-navy);margin-top:4px;line-height:1.3">{{ det.alt }}</div>
+</div>
+</div>
+<div style="background:var(--sm-yellow);border-radius:12px;padding:14px 16px;color:var(--sm-navy)">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px">Warum surfrelevant</div>
+<p style="font-size:13.5px;line-height:1.5;margin-top:6px;color:var(--sm-navy-900);text-wrap:pretty">{{ det.why }}</p>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPlan }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:4px;background:var(--sm-grey-200);border-radius:999px;padding:4px">
+<button onClick="{{ setPlanW }}" style="{{ pW }}">Woche</button>
+<button onClick="{{ setPlanA }}" style="{{ pA }}">Block A</button>
+<button onClick="{{ setPlanB }}" style="{{ pB }}">Block B</button>
+</div>
+
+<sc-if value="{{ planIsW }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-1)">
+<sc-for list="{{ weekRows }}" as="d" hint-placeholder-count="7">
+<div onClick="{{ d.onOpen }}" style="{{ d.rowStyle }}">
+<div style="width:38px;flex:none">
+<div style="font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3)">{{ d.dow }}</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:16px;color:var(--sm-navy)">{{ d.num }}</div>
+</div>
+<div style="flex:1;min-width:0">
+<div style="{{ d.titleStyle }}">{{ d.title }}</div>
+<div style="font-size:11px;color:var(--fg-3)">{{ d.sub }}</div>
+</div>
+<div style="{{ d.badgeStyle }}">{{ d.badge }}</div>
+</div>
+</sc-for>
+</div>
+<div style="background:var(--sm-navy);border-radius:12px;padding:14px 16px;color:#fff">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px;color:var(--sm-yellow)">Regel der Wasserphase</div>
+<p style="font-size:13px;line-height:1.5;margin-top:6px;color:rgba(255,255,255,.88);text-wrap:pretty">Keine schweren Beine am Vorabend eines Surftags. Gym nach der Session oder mit mindestens vier Stunden Abstand. RPE-Deckel 7, nie bis zum Muskelversagen.</p>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ planIsA }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:var(--sm-navy);border-radius:12px;padding:14px 16px;color:#fff">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sm-yellow)">11.9. – 27.9. · 2,5 Wochen</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:20px;margin-top:4px">Block A — Wasserphase</div>
+<p style="font-size:13px;line-height:1.5;margin-top:6px;color:rgba(255,255,255,.85);text-wrap:pretty">Täglich surfen, Gym nur dreimal pro Woche und mit halbem Volumen. Ziel ist nicht Zuwachs, sondern belastbare Schultern, Hüften und ein stabiler unterer Rücken.</p>
+</div>
+<sc-for list="{{ blockA }}" as="s" hint-placeholder-count="3">
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:11px;letter-spacing:.06em;background:var(--sm-navy);color:#fff;padding:3px 8px;border-radius:4px">{{ s.code }}</span>
+<span style="font-size:11px;color:var(--fg-3)">{{ s.meta }}</span>
+</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:17px;color:var(--sm-navy);margin-top:8px">{{ s.title }}</div>
+<div style="display:flex;flex-direction:column;margin-top:8px">
+<sc-for list="{{ s.items }}" as="i" hint-placeholder-count="5">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+<div style="font-size:13px">{{ i.n }}</div>
+<div style="font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);white-space:nowrap">{{ i.s }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ planIsB }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:var(--sm-ink);border-radius:12px;padding:14px 16px;color:#fff">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sm-yellow)">Ab 28.9. · 8 Wochen</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:20px;margin-top:4px">Block B — Hauptblock</div>
+<p style="font-size:13px;line-height:1.5;margin-top:6px;color:rgba(255,255,255,.85);text-wrap:pretty">Vier Einheiten pro Woche mit je 25 Arbeitssätzen. Die letzten Übungen laufen als Supersatz mit 45 Sekunden Pause — so bleibt die Einheit bei 60 bis 75 Minuten.</p>
+</div>
+<sc-for list="{{ blockB }}" as="d" hint-placeholder-count="4">
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+<span style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--fg-3)">{{ d.day }}</span>
+<span style="font-family:var(--font-mono);font-size:11px;color:var(--fg-3)">{{ d.meta }}</span>
+</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:17px;color:var(--sm-navy);margin-top:6px">{{ d.title }}</div>
+<div style="display:flex;flex-direction:column;margin-top:10px">
+<sc-for list="{{ d.items }}" as="i" hint-placeholder-count="5">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+<div style="font-size:13px">{{ i.n }}</div>
+<div style="font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);white-space:nowrap">{{ i.s }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCore }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:4px;background:var(--sm-grey-200);border-radius:999px;padding:4px">
+<button onClick="{{ setTabCore }}" style="{{ cC }}">Core · 10 min</button>
+<button onClick="{{ setTabMob }}" style="{{ cM }}">Mobility</button>
+</div>
+
+<sc-if value="{{ coreIsCore }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ cycles }}" as="c" hint-placeholder-count="3">
+<div style="{{ c.cardStyle }}">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+<div style="min-width:0">
+<div style="{{ c.eyebrowStyle }}">{{ c.eyebrow }}</div>
+<div style="{{ c.titleStyle }}">{{ c.title }}</div>
+</div>
+<div style="{{ c.pillStyle }}">{{ c.pill }}</div>
+</div>
+<div style="display:flex;flex-direction:column;margin-top:8px">
+<sc-for list="{{ c.items }}" as="i" hint-placeholder-count="3">
+<div style="{{ i.rowStyle }}">
+<span>{{ i.n }}</span>
+<span style="font-family:var(--font-mono);font-size:11.5px;opacity:.72;white-space:nowrap">{{ i.s }}</span>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ c.isToday }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ c.onStart }}" style="{{ c.btnStyle }}">{{ c.btn }}</button>
+</sc-if>
+</div>
+</sc-for>
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px;color:var(--sm-navy)">Ehrlich zum Sixpack</div>
+<p style="font-size:13px;line-height:1.5;color:var(--fg-2);margin-top:6px;text-wrap:pretty">Das tägliche Training macht die Bauchmuskeln dicker und den Rumpf für Rotation und Wipeouts belastbar. Sichtbar macht sie der Körperfettanteil — das entscheidet die Ernährung, nicht der Plan.</p>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ coreIsMob }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ mobility }}" as="m" hint-placeholder-count="2">
+<div style="{{ m.cardStyle }}">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+<div style="min-width:0">
+<div style="{{ m.eyebrowStyle }}">{{ m.eyebrow }}</div>
+<div style="{{ m.titleStyle }}">{{ m.title }}</div>
+</div>
+<div style="{{ m.pillStyle }}">{{ m.pill }}</div>
+</div>
+<div style="display:flex;flex-direction:column;margin-top:8px">
+<sc-for list="{{ m.items }}" as="i" hint-placeholder-count="5">
+<div style="{{ i.rowStyle }}">
+<span>{{ i.n }}</span>
+<span style="font-family:var(--font-mono);font-size:11.5px;opacity:.72;white-space:nowrap">{{ i.s }}</span>
+</div>
+</sc-for>
+</div>
+<button onClick="{{ m.onToggle }}" style="{{ m.btnStyle }}">{{ m.btn }}</button>
+</div>
+</sc-for>
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px;color:var(--sm-navy)">Damit es wirkt</div>
+<div style="display:flex;flex-direction:column;gap:7px;margin-top:8px;font-size:13px;color:var(--fg-2);line-height:1.45">
+<div>Statisch dehnen nie direkt vor dem Krafttraining</div>
+<div>Dehnung bei 6 bis 7 von 10, nie im Schmerz</div>
+<div>Ruhig weiteratmen statt pressen</div>
+<div>Bei Schulterproblemen den Sleeper Stretch weglassen</div>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isVerlauf }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:14px;color:var(--sm-navy)">Volumen je Woche</div>
+<div style="display:flex;align-items:flex-end;gap:8px;margin-top:14px">
+<sc-for list="{{ bars }}" as="b" hint-placeholder-count="6">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:104px">
+<div style="{{ b.surfStyle }}"></div>
+</div>
+<div style="font-size:10px;color:var(--fg-3)">{{ b.label }}</div>
+</div>
+</sc-for>
+</div>
+<div style="margin-top:11px;font-size:11px;color:var(--fg-3)">Geloggte Arbeitssätze pro Kalenderwoche</div>
+</div>
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:14px;color:var(--sm-navy)">Bestwerte &amp; Progression</div>
+<div style="display:flex;flex-direction:column;margin-top:4px">
+<sc-for list="{{ records }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+<div style="flex:1;min-width:0">
+<div style="font-size:13.5px;font-weight:500">{{ r.name }}</div>
+<div style="font-size:11px;color:var(--fg-3)">{{ r.when }}</div>
+</div>
+<div style="text-align:right">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:16px;color:var(--sm-navy)">{{ r.value }}</div>
+<div style="font-size:11px;font-weight:600;color:var(--success)">{{ r.delta }}</div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="background:var(--sm-navy);border-radius:12px;padding:14px 16px;color:#fff">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sm-yellow)">Doppelprogression</div>
+<p style="font-size:13px;line-height:1.5;margin-top:6px;color:rgba(255,255,255,.88);text-wrap:pretty">Bleib beim Gewicht, bis du in allen Sätzen die obere Wiederholungszahl schaffst. Dann rauf: 2,5 kg am Oberkörper, 5 kg an den Beinen — und wieder am unteren Ende anfangen.</p>
+</div>
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px;color:var(--sm-navy)">RPE lesen</div>
+<p style="font-size:13px;line-height:1.5;color:var(--fg-2);margin-top:6px;text-wrap:pretty">RPE 8 heißt: zwei saubere Wiederholungen wären noch gegangen. RPE 9 eine, RPE 7 drei. Hauptübungen auf 8, Explosives deutlich darunter, die Abschlussübungen dürfen an die 9.</p>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProfil }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:var(--sm-navy);border-radius:12px;padding:16px;color:#fff;display:flex;align-items:center;gap:14px">
+<div style="flex:none;width:54px;height:54px;border-radius:999px;background:#fff;color:var(--sm-navy);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-style:italic;font-size:19px">JS</div>
+<div style="flex:1;min-width:0">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:20px">Jan S.</div>
+<div style="font-size:12px;color:rgba(255,255,255,.72)">Fortgeschritten · RPE-Deckel 8 · 3 Gym-Tage</div>
+</div>
+</div>
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-1)">
+<sc-for list="{{ settings }}" as="s" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border)">
+<div style="flex:1;min-width:0">
+<div style="font-size:14px">{{ s.label }}</div>
+<div style="font-size:11.5px;color:var(--fg-3)">{{ s.hint }}</div>
+</div>
+<button onClick="{{ s.onToggle }}" style="{{ s.switchStyle }}"><span style="{{ s.knobStyle }}"></span></button>
+</div>
+</sc-for>
+</div>
+<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-1)">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px;color:var(--sm-navy)">Geräte im Studio</div>
+<div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px">
+<sc-for list="{{ gear }}" as="g" hint-placeholder-count="6">
+<span style="font-size:12px;padding:6px 11px;border-radius:999px;background:var(--sm-navy-100);color:var(--sm-navy-800)">{{ g.n }}</span>
+</sc-for>
+</div>
+<p style="font-size:12px;line-height:1.45;color:var(--fg-3);margin-top:11px;text-wrap:pretty">Fehlt ein Gerät: Latzug ersetzt Klimmzug, Hackenschmidt die Kniebeuge, Kurzhantelrudern das Langhantelrudern. Die Bewegungsrichtung zählt, nicht das Gerät.</p>
+</div>
+<div style="background:var(--sm-yellow);border-radius:12px;padding:14px 16px;color:var(--sm-navy)">
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px">Die eine Regel</div>
+<p style="font-size:13px;line-height:1.5;margin-top:6px;color:var(--sm-navy-900);text-wrap:pretty">Face Pulls und Außenrotationen werden nie gestrichen, auch nicht wenn die Zeit knapp wird. Die Paddelschulter ist die Verletzung, die Surfer aus dem Wasser holt.</p>
+</div>
+</div>
+</sc-if>
+
+</div>
+
+<sc-if value="{{ restVisible }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:12px;right:12px;bottom:96px;background:var(--sm-ink);color:#fff;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-3);z-index:40">
+<div style="flex:1;min-width:0">
+<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sm-yellow)">Pause</div>
+<div style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:22px;line-height:1.15">{{ restLabel }}</div>
+</div>
+<button onClick="{{ restPrimary }}" style="{{ restBtnStyle }}">{{ restBtnLabel }}</button>
+<button onClick="{{ restDismiss }}" style="flex:none;width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:none;color:#fff;font-size:15px;cursor:pointer">×</button>
+</div>
+</sc-if>
+
+<div style="flex:none;background:rgba(255,255,255,.95);border-top:1px solid var(--border);display:flex;padding:8px 4px 26px;z-index:30">
+<button onClick="{{ goHeute }}" style="{{ tHeute }}">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3.5l9 7"></path><path d="M5.5 9.5V20.5h13V9.5"></path></svg>
+<span style="font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:600">Heute</span>
+</button>
+<button onClick="{{ goPlan }}" style="{{ tPlan }}">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="16" rx="2.5"></rect><path d="M3.5 9.5h17M8.5 3v3M15.5 3v3"></path></svg>
+<span style="font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:600">Plan</span>
+</button>
+<button onClick="{{ goCore }}" style="{{ tCore }}">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>
+<span style="font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:600">Core</span>
+</button>
+<button onClick="{{ goVerlauf }}" style="{{ tVerlauf }}">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>
+<span style="font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:600">Verlauf</span>
+</button>
+<button onClick="{{ goProfil }}" style="{{ tProfil }}">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="4"></circle><path d="M4.5 20.5c1.5-3.6 4.2-5.5 7.5-5.5s6 1.9 7.5 5.5"></path></svg>
+<span style="font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:600">Profil</span>
+</button>
+</div>
+
+</div>
+</x-import>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:1080}}">
+const NAVY='#1e3a5f', RED='#d72638', YEL='#f4a900', INK='#0b0f17', BORDER='#e5e7eb', G600='#6b7280', GREEN='#1f8a4c';
+const DISP="'futura-pt-web-medium','futura-pt','Futura Cyrillic',system-ui,sans-serif";
+
+const EX = [
+  {id:'pull', name:'Klimmzug / Latzug breit', tag:'surf', target:'4 × 6–8 · RPE 7', note:'Der stärkste Paddelzug kommt aus dem Latissimus. Hier baust du die Kraft, die dich durch die Impact Zone bringt.', last:'Körper +5 kg · 4×7', alt:'Latzug am Kabel', cues:['Schulterblätter zuerst nach unten ziehen, dann erst die Arme beugen','Oben zwei Sekunden aushängen, das entlastet die Kapsel','Kein Schwung aus der Hüfte, lieber eine Wiederholung weniger'], why:'Paddeln ist zu 80 % Zug. Wer nur drückt, bekommt eine nach vorne rotierte Schulter und paddelt mit halber Leistung.', sets:[{w:5,r:8},{w:5,r:7},{w:5,r:7},{w:5,r:6}]},
+  {id:'row', name:'Langhantelrudern', tag:'surf', target:'3 × 8–10 · RPE 7', note:'Horizontaler Zug für die mittlere Rückenmuskulatur — der Gegenspieler zur Paddelhaltung.', last:'55 kg · 3×9', alt:'Kurzhantelrudern einarmig', cues:['Rumpf bei etwa 45 Grad, Rücken neutral','Zum Bauchnabel ziehen, nicht zur Brust','Kein Rucken aus dem unteren Rücken'], why:'Stabilisiert das Schulterblatt beim Aufstehen und beim Abstützen auf dem Board.', sets:[{w:55,r:10},{w:55,r:9},{w:55,r:8}]},
+  {id:'face', name:'Face Pull', tag:'surf', target:'3 × 12–15 · RPE 6', note:'Die Versicherung für die Paddelschulter. Wird nie gestrichen.', last:'25 kg · 3×15', alt:'Band Pull-Apart', cues:['Seil zur Stirn ziehen, Ellenbogen hoch','Am Endpunkt außenrotieren, kurz halten','Leicht bleiben, das ist kein Kraftwert'], why:'Hintere Schulter und Außenrotatoren bremsen die Paddelbewegung ab. Schwach heißt Impingement.', sets:[{w:25,r:15},{w:25,r:14},{w:25,r:12}]},
+  {id:'ext', name:'Außenrotation am Kabel', tag:'surf', target:'2 × 15 · RPE 6', note:'Kleine Muskeln, große Wirkung. Sauber und langsam.', last:'7,5 kg · 2×15', alt:'Außenrotation mit Miniband', cues:['Ellenbogen am Körper fixieren, Handtuch dazwischen klemmen','Nur der Unterarm bewegt sich','Drei Sekunden zurück'], why:'Die Rotatorenmanschette hält den Oberarmkopf zentriert — sonst reibt die Sehne bei jedem Paddelzug.', sets:[{w:7.5,r:15},{w:7.5,r:15}]},
+  {id:'carry', name:'Farmer Carry', tag:'surf', target:'3 × 40 m · RPE 7', note:'Griffkraft und Rumpfstabilität am Stück — überträgt direkt aufs Duckdive.', last:'2 × 32 kg', alt:'Koffergriff einseitig', cues:['Brust auf, Schultern hinten unten','Ruhig atmen, nicht pressen','Kurze, kontrollierte Schritte'], why:'Ein müder Griff kostet dich die letzten Wellen einer Session.', sets:[{w:32,r:40},{w:32,r:40},{w:32,r:40}]},
+  {id:'curl', name:'Bizepscurl Kurzhantel', tag:'acc', target:'2 × 10–12 · RPE 9', note:'Abschlussübung. Als Supersatz, 45 Sekunden Pause.', last:'14 kg · 2×11', alt:'Hammercurl', cues:['Ellenbogen bleibt am Körper','Absenken drei Sekunden','Hier darf es brennen'], why:'Steht bewusst am Ende der Einheit, wenn die wichtigen Züge schon im Kasten sind.', sets:[{w:14,r:12},{w:14,r:10}]}
+];
+
+const CYCLES = [
+  {eyebrow:'Zyklus A · heute', title:'Anti-Extension', today:true, items:[['Plank','3 × 45 s'],['Dead Bug','3 × 10/Seite'],['Hollow Hold','3 × 20 s']]},
+  {eyebrow:'Zyklus B · morgen', title:'Anti-Rotation', today:false, items:[['Pallof Press','3 × 12/Seite'],['Side Plank','3 × 30 s/Seite'],['Bird Dog','3 × 10/Seite']]},
+  {eyebrow:'Zyklus C · übermorgen', title:'Beugung &amp; Hüfte', today:false, items:[['Hanging Knee Raise','3 × 12'],['Reverse Crunch','3 × 15'],['Hip Bridge','3 × 15']]}
+];
+
+const MOB = [
+  {eyebrow:'Morgens · 5 min', title:'Aufwachen', done:true, items:[['Katze-Kuh','8 Wdh.'],['Weltbeste Dehnung','5 / Seite'],['Hüftbeuger-Lunge','30 s / Seite'],['Brustwirbel-Rotation','8 / Seite'],['Schulterkreisen','10 Wdh.']]},
+  {eyebrow:'Abends · 8 min', title:'Runterkommen', done:false, items:[['Kindhaltung mit Reach','60 s'],['Brustöffner Türrahmen','45 s / Seite'],['Taubenhaltung','60 s / Seite'],['Sleeper Stretch','30 s / Seite'],['Waden an der Wand','45 s / Seite']]}
+];
+
+const WEEK = [
+  {dow:'Mo', num:8, state:'done', title:'Gym A1 · Zug & Schulter', sub:'17 Sätze · RPE 7', badge:'✓'},
+  {dow:'Di', num:9, state:'done', title:'Surf + Core B', sub:'Anti-Rotation · 10 min', badge:'✓'},
+  {dow:'Mi', num:10, state:'done', title:'Gym A2 · Beine & Rumpf', sub:'15 Sätze · RPE 7', badge:'✓'},
+  {dow:'Do', num:11, state:'today', title:'Gym A1 · Zug & Schulter', sub:'17 Sätze · heute fällig', badge:'Start'},
+  {dow:'Fr', num:12, state:'open', title:'Surf + Mobility', sub:'nur morgens & abends', badge:'—'},
+  {dow:'Sa', num:13, state:'open', title:'Gym A3 · Ganzkörper', sub:'14 Sätze · RPE 7', badge:'—'},
+  {dow:'So', num:14, state:'open', title:'Surf frei', sub:'Core C · 10 min', badge:'—'}
+];
+
+const BLOCK_A = [
+  {code:'A1', meta:'ca. 40 min · 17 Sätze', title:'Zug & Schultergesundheit', items:[['Klimmzug / Latzug','4 × 6–8'],['Langhantelrudern','3 × 8–10'],['Face Pull','3 × 12–15'],['Außenrotation','2 × 15'],['Farmer Carry','3 × 40 m'],['Bizepscurl','2 × 10–12']]},
+  {code:'A2', meta:'ca. 40 min · 15 Sätze', title:'Beine & Rumpf leicht', items:[['Goblet Squat','3 × 8–10'],['Rumänisches Kreuzheben','3 × 8'],['Ausfallschritt','3 × 10/Seite'],['Pallof Press','3 × 12'],['Wadenheben','3 × 15']]},
+  {code:'A3', meta:'ca. 40 min · 14 Sätze', title:'Ganzkörper &amp; Druck', items:[['Schrägbankdrücken KH','3 × 8–10'],['Einarmiges Rudern','3 × 10/Seite'],['Seitheben','3 × 12–15'],['Face Pull','3 × 15'],['Trizeps Pushdown','2 × 12']]}
+];
+
+const BLOCK_B = [
+  {day:'Montag', title:'Oberkörper Zug', meta:'25 Sätze · ~70 min', items:[['Klimmzug beschwert','4 × 5–7'],['Langhantelrudern','4 × 6–8'],['Latzug eng','3 × 10'],['Face Pull','4 × 15'],['Bizeps Supersatz','5 × 10–12']]},
+  {day:'Dienstag', title:'Beine &amp; Explosivität', meta:'25 Sätze · ~70 min', items:[['Kniebeuge','4 × 5'],['Box Jump','4 × 3'],['Rumänisches Kreuzheben','3 × 8'],['Bulgarian Split Squat','4 × 8/Seite'],['Waden Supersatz','5 × 15']]},
+  {day:'Donnerstag', title:'Oberkörper Druck', meta:'25 Sätze · ~65 min', items:[['Schrägbankdrücken','4 × 6–8'],['Schulterdrücken KH','3 × 8–10'],['Dips','3 × 8'],['Außenrotation','3 × 15'],['Trizeps &amp; Seitheben','5 × 12']]},
+  {day:'Samstag', title:'Rotation &amp; Pop-up', meta:'25 Sätze · ~65 min', items:[['Landmine Press','4 × 8/Seite'],['Medizinball-Wurf','4 × 6/Seite'],['Türkisch Aufstehen','3 × 4/Seite'],['Hanging Leg Raise','4 × 10'],['Unterarme Supersatz','5 × 15']]}
+];
+
+const RECORDS = [
+  {name:'Klimmzug beschwert', when:'Mo 8.9.', value:'+5 kg × 7', delta:'+1 Wdh.'},
+  {name:'Langhantelrudern', when:'Mo 8.9.', value:'55 kg × 9', delta:'+2,5 kg'},
+  {name:'Goblet Squat', when:'Mi 10.9.', value:'32 kg × 10', delta:'+2 Wdh.'},
+  {name:'Farmer Carry', when:'Mo 8.9.', value:'2 × 32 kg', delta:'+40 m'}
+];
+
+const BARS = [
+  {label:'KW31', s:22, o:8},{label:'KW32', s:26, o:12},{label:'KW33', s:24, o:10},
+  {label:'KW34', s:30, o:16},{label:'KW35', s:28, o:14},{label:'KW36', s:17, o:11}
+];
+
+const GEAR = ['Langhantel','Kurzhanteln bis 40 kg','Kabelzug','Klimmzugstange','Latzug','Beinpresse','Medizinball','Bänder'];
+
+class Component extends DCLogic {
+  state = {
+    variant:'A', screen:'home', prevScreen:'home', planTab:'w', coreTab:'core',
+    detailId:'pull', sets:{}, coreDone:false, mobDone:{0:true,1:false},
+    settings:{0:true,1:true,2:false,3:true},
+    rest:null, restLeft:0, restRunning:false
+  };
+
+  componentWillUnmount(){ clearInterval(this._t); }
+
+  tick(){
+    clearInterval(this._t);
+    this._t = setInterval(()=>{
+      this.setState(s=>{
+        if(!s.restRunning) return null;
+        if(s.restLeft<=1){ clearInterval(this._t); return {restLeft:0, restRunning:false}; }
+        return {restLeft:s.restLeft-1};
+      });
+    },1000);
+  }
+
+  go(screen){ this.setState(s=>({screen, prevScreen:s.screen==='home'?'home':s.prevScreen})); }
+
+  setKey(exId,i,patch){
+    const k=exId+'-'+i;
+    this.setState(s=>{
+      const cur=s.sets[k]||{};
+      return {sets:{...s.sets,[k]:{...cur,...patch}}};
+    });
+  }
+
+  getSet(exId,i,base){
+    const v=this.state.sets[exId+'-'+i]||{};
+    return {w: v.w!==undefined?v.w:base.w, r: v.r!==undefined?v.r:base.r, rpe: v.rpe!==undefined?v.rpe:7, done: !!v.done};
+  }
+
+  tab(name,active){
+    return `flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border:0;background:none;cursor:pointer;color:${active?RED:G600};font-family:${DISP}`;
+  }
+  seg(active){
+    return `flex:1;border:0;border-radius:999px;padding:8px 6px;font-size:12px;font-weight:600;cursor:pointer;background:${active?'#fff':'transparent'};color:${active?NAVY:G600};box-shadow:${active?'0 1px 3px rgba(11,15,23,.12)':'none'};font-family:${DISP}`;
+  }
+
+  renderVals(){
+    const s=this.state, V=s.variant, sc=s.screen;
+    const isHome = sc==='home';
+    let doneCount=0, total=0;
+    EX.forEach(ex=>ex.sets.forEach((b,i)=>{ total++; if(this.getSet(ex.id,i,b).done) doneCount++; }));
+
+    const exercises = EX.map(ex=>({
+      name:ex.name, target:ex.target,
+      onInfo:()=>this.setState({screen:'detail', detailId:ex.id}),
+      sets: ex.sets.map((b,i)=>{
+        const v=this.getSet(ex.id,i,b);
+        const unit = ex.id==='carry' ? ' m' : '';
+        return {
+          num:i+1,
+          weight: (ex.id==='carry'? v.w+' kg' : String(v.w).replace('.',',')+' kg'),
+          reps: v.r + (unit||' Wdh.'),
+          rpe: 'RPE '+v.rpe,
+          rowStyle:`display:flex;align-items:center;gap:7px;padding:6px;border-radius:9px;background:${v.done?'#eef7f1':'#f7f8fa'};border:1px solid ${v.done?'#c9e4d4':BORDER}`,
+          rpeStyle:`flex:none;height:34px;padding:0 9px;border:1px solid ${BORDER};border-radius:8px;background:#fff;font-size:11.5px;font-weight:600;color:${v.rpe>=9?RED:NAVY};cursor:pointer;white-space:nowrap`,
+          checkStyle:`flex:none;width:34px;height:34px;border-radius:8px;border:1px solid ${v.done?GREEN:BORDER};background:${v.done?GREEN:'#fff'};color:${v.done?'#fff':'#c0c5cf'};font-size:15px;cursor:pointer`,
+          onWUp:()=>this.setKey(ex.id,i,{w:+(v.w+(ex.id==='carry'?4:2.5)).toFixed(1)}),
+          onWDown:()=>this.setKey(ex.id,i,{w:Math.max(0,+(v.w-(ex.id==='carry'?4:2.5)).toFixed(1))}),
+          onReps:()=>this.setKey(ex.id,i,{r: v.r>=(ex.id==='carry'?60:20) ? (ex.id==='carry'?20:4) : v.r+(ex.id==='carry'?10:1)}),
+          onRpe:()=>this.setKey(ex.id,i,{rpe: v.rpe>=10?6:v.rpe+1}),
+          onToggle:()=>{
+            this.setKey(ex.id,i,{done:!v.done});
+            if(!v.done) this.setState({rest:90, restLeft:90, restRunning:false});
+          }
+        };
+      })
+    }));
+
+    const week = WEEK.map(d=>{
+      const bg = d.state==='done' ? '#eef7f1' : d.state==='today' ? RED : '#f3f4f6';
+      const fg = d.state==='today' ? '#fff' : NAVY;
+      const dot = d.state==='done'?GREEN:d.state==='today'?'#fff':'#c0c5cf';
+      return {dow:d.dow, num:d.num,
+        cellStyle:`display:flex;flex-direction:column;align-items:center;padding:7px 2px 6px;border-radius:9px;background:${bg};color:${fg};border:1px solid ${d.state==='today'?RED:BORDER}`,
+        dotStyle:`width:6px;height:6px;border-radius:999px;background:${dot};margin-top:5px`};
+    });
+
+    const weekRows = WEEK.map((d,idx)=>({
+      dow:d.dow, num:d.num, title:d.title, sub:d.sub, badge:d.badge,
+      rowStyle:`display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:${idx<6?'1px solid '+BORDER:'0'};background:${d.state==='today'?'#fff7f7':'#fff'};cursor:${d.state==='today'?'pointer':'default'}`,
+      titleStyle:`font-size:13.5px;font-weight:500;color:${d.state==='open'?G600:INK};line-height:1.25`,
+      badgeStyle: d.state==='today'
+        ? `flex:none;font-family:${DISP};font-weight:800;font-style:italic;text-transform:uppercase;font-size:11px;background:${RED};color:#fff;padding:6px 11px;border-radius:999px`
+        : `flex:none;font-size:13px;color:${d.state==='done'?GREEN:'#c0c5cf'}`,
+      onOpen: d.state==='today' ? (()=>this.setState({screen:'session'})) : undefined
+    }));
+
+    const det = (()=>{
+      const e = EX.find(x=>x.id===s.detailId)||EX[0];
+      return {target:e.target, note:e.note,
+        cues:e.cues.map(t=>({t})), last:e.last, alt:e.alt, why:e.why, name:e.name};
+    })();
+
+    const cycles = CYCLES.map((c,i)=>({
+      eyebrow:c.eyebrow, title:c.title, isToday:c.today,
+      pill: c.today ? (s.coreDone?'erledigt':'offen') : 'geplant',
+      cardStyle:`background:${c.today?NAVY:'#fff'};color:${c.today?'#fff':INK};border:1px solid ${c.today?NAVY:BORDER};border-radius:12px;padding:14px`,
+      eyebrowStyle:`font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:${c.today?YEL:G600}`,
+      titleStyle:`font-family:${DISP};font-weight:800;font-style:italic;text-transform:uppercase;font-size:17px;margin-top:3px;color:${c.today?'#fff':NAVY}`,
+      pillStyle:`flex:none;font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:999px;background:${c.today?(s.coreDone?GREEN:'rgba(255,255,255,.16)'):'#f3f4f6'};color:${c.today?'#fff':G600}`,
+      items:c.items.map(([n,v],j)=>({n, s:v, rowStyle:`display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;font-size:13px;border-top:1px solid ${c.today?'rgba(255,255,255,.16)':BORDER}`})),
+      btn: s.coreDone?'Als offen markieren':'Zyklus A starten',
+      btnStyle:`width:100%;margin-top:12px;border:0;border-radius:8px;background:${s.coreDone?'rgba(255,255,255,.16)':RED};color:#fff;font-family:${DISP};font-weight:800;font-style:italic;text-transform:uppercase;font-size:14px;padding:13px;cursor:pointer`,
+      onStart:()=>this.setState(st=>({coreDone:!st.coreDone}))
+    }));
+
+    const mobility = MOB.map((m,i)=>{
+      const done = !!s.mobDone[i];
+      return {eyebrow:m.eyebrow, title:m.title, pill: done?'erledigt':'offen',
+        cardStyle:`background:#fff;border:1px solid ${done?'#c9e4d4':BORDER};border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(11,15,23,.06)`,
+        eyebrowStyle:`font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:${G600}`,
+        titleStyle:`font-family:${DISP};font-weight:800;font-style:italic;text-transform:uppercase;font-size:17px;margin-top:3px;color:${NAVY}`,
+        pillStyle:`flex:none;font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:999px;background:${done?GREEN:'#f3f4f6'};color:${done?'#fff':G600}`,
+        items:m.items.map(([n,v])=>({n, s:v, rowStyle:`display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;font-size:13px;border-top:1px solid ${BORDER}`})),
+        btn: done?'Erledigt ✓':'Abhaken',
+        btnStyle:`width:100%;margin-top:12px;border:1.5px solid ${done?GREEN:NAVY};border-radius:8px;background:${done?GREEN:'transparent'};color:${done?'#fff':NAVY};font-family:${DISP};font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px;padding:11px;cursor:pointer`,
+        onToggle:()=>this.setState(st=>({mobDone:{...st.mobDone,[i]:!st.mobDone[i]}}))
+      };
+    });
+
+    const maxBar = 46;
+    const bars = BARS.map(b=>({label:b.label,
+      surfStyle:`height:${Math.round((b.s+b.o)/maxBar*100)}px;background:${NAVY};border-radius:3px 3px 0 0`}));
+
+    const SET = [
+      {label:'Pausentimer vorschlagen', hint:'90 s nach jedem Satz, manuell starten'},
+      {label:'RPE abfragen', hint:'pro Satz, Deckel bei 8 in Block A'},
+      {label:'Kilogramm in 1-kg-Schritten', hint:'sonst 2,5 kg Oberkörper / 5 kg Beine'},
+      {label:'Erinnerung Mobility abends', hint:'täglich 21:00 Uhr'}
+    ];
+    const settings = SET.map((x,i)=>{
+      const on = !!s.settings[i];
+      return {label:x.label, hint:x.hint,
+        switchStyle:`flex:none;width:50px;height:30px;border-radius:999px;border:0;padding:3px;display:flex;justify-content:${on?'flex-end':'flex-start'};align-items:center;background:${on?GREEN:'#d1d5db'};cursor:pointer`,
+        knobStyle:'display:block;width:24px;height:24px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25)',
+        onToggle:()=>this.setState(st=>({settings:{...st.settings,[i]:!st.settings[i]}}))};
+    });
+
+    const mm=Math.floor(s.restLeft/60), ss=String(s.restLeft%60).padStart(2,'0');
+    const headMap = {
+      session:['Freitag 11.9. · Block A','Einheit A1'],
+      detail:['Übung','' ],
+      plan:['Trainingsplan','Plan'],
+      core:['Täglich · 10 Minuten','Core & Mobility'],
+      verlauf:['Seit KW 31','Fortschritt'],
+      profil:['Konto','Profil & Einstellungen']
+    };
+    const head = headMap[sc]||['',''];
+
+    return {
+      devW:402, devH:874,
+      isHome, isSub:!isHome,
+      isHomeA:isHome,
+      isSession:sc==='session', isDetail:sc==='detail', isPlan:sc==='plan',
+      isCore:sc==='core', isVerlauf:sc==='verlauf', isProfil:sc==='profil',
+      headEyebrow: sc==='detail' ? 'Übungsdetail' : head[0],
+      headTitle: sc==='detail' ? det.name : head[1],
+      back:()=>this.setState(st=>({screen: st.screen==='detail'?'session':'home'})),
+
+      goHeute:()=>this.setState({screen:'home'}),
+      goPlan:()=>this.setState({screen:'plan'}),
+      goCore:()=>this.setState({screen:'core'}),
+      goVerlauf:()=>this.setState({screen:'verlauf'}),
+      goProfil:()=>this.setState({screen:'profil'}),
+      startSession:()=>this.setState({screen:'session'}),
+      finishSession:()=>this.setState({screen:'home'}),
+      startLabel: doneCount>0 ? 'Einheit fortsetzen' : 'Einheit starten',
+
+      tHeute:this.tab('h',isHome), tPlan:this.tab('p',sc==='plan'),
+      tCore:this.tab('c',sc==='core'), tVerlauf:this.tab('v',sc==='verlauf'), tProfil:this.tab('pr',sc==='profil'),
+
+      week, weekRows, records:RECORDS, bars, gear:GEAR.map(n=>({n})), settings, exercises, det, cycles, mobility,
+      gymCount: 1, coreStreak: s.coreDone?5:4,
+      coreTodayLabel: s.coreDone?'heute erledigt':'heute noch offen',
+      mobLabel: s.mobDone[1]?'komplett erledigt':'abends offen',
+      doneCount, totalCount: total, restCountLabel: (total-doneCount)+' offen',
+      progStyle:`height:100%;width:${Math.round(doneCount/total*100)}%;background:${RED};border-radius:999px;transition:width .2s`,
+
+      planIsW:s.planTab==='w', planIsA:s.planTab==='a', planIsB:s.planTab==='b',
+      pW:this.seg(s.planTab==='w'), pA:this.seg(s.planTab==='a'), pB:this.seg(s.planTab==='b'),
+      setPlanW:()=>this.setState({planTab:'w'}), setPlanA:()=>this.setState({planTab:'a'}), setPlanB:()=>this.setState({planTab:'b'}),
+      blockA:BLOCK_A.map(b=>({...b, items:b.items.map(([n,v])=>({n,s:v}))})),
+      blockB:BLOCK_B.map(b=>({...b, items:b.items.map(([n,v])=>({n,s:v}))})),
+
+      coreIsCore:s.coreTab==='core', coreIsMob:s.coreTab==='mob',
+      cC:this.seg(s.coreTab==='core'), cM:this.seg(s.coreTab==='mob'),
+      setTabCore:()=>this.setState({coreTab:'core'}), setTabMob:()=>this.setState({coreTab:'mob'}),
+
+      restVisible: s.rest!==null && sc==='session',
+      restLabel: s.restLeft===0 ? 'Bereit' : mm+':'+ss,
+      restBtnLabel: s.restRunning ? 'Pause' : (s.restLeft===0 ? '90 s' : 'Start'),
+      restBtnStyle:`flex:none;border:0;border-radius:8px;background:${s.restRunning?'rgba(255,255,255,.18)':RED};color:#fff;font-family:${DISP};font-weight:800;font-style:italic;text-transform:uppercase;font-size:13px;padding:10px 15px;cursor:pointer`,
+      restPrimary:()=>{
+        if(s.restRunning){ clearInterval(this._t); this.setState({restRunning:false}); }
+        else { this.setState(st=>({restRunning:true, restLeft: st.restLeft===0?90:st.restLeft})); this.tick(); }
+      },
+      restDismiss:()=>{ clearInterval(this._t); this.setState({rest:null, restRunning:false, restLeft:0}); }
+    };
+  }
+}
+</script>
+</body>
+</html>
