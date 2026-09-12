@@ -760,10 +760,6 @@ function renderCoreCycles() {
             ${isToday ? `<button class="btn-cyc ${prof.coreDone ? 'on' : ''}" data-action="core-start">${prof.coreDone ? 'Als offen markieren' : 'Zyklus A starten'}</button>` : ''}
           </div>`;
       }).join('')}
-      <div class="card">
-        <div class="card-title-inv" style="color:var(--sm-navy)">Ehrlich zum Sixpack</div>
-        <p style="font-size:13px;line-height:1.5;color:var(--fg-2);margin-top:6px">Das tägliche Training macht die Bauchmuskeln dicker und den Rumpf für Rotation und Wipeouts belastbar. Sichtbar macht sie der Körperfettanteil — das entscheidet die Ernährung, nicht der Plan.</p>
-      </div>
     </div>`;
 }
 
