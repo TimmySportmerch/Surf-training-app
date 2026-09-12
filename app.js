@@ -7,6 +7,7 @@ const DEFAULT_PROFILES = {
     id: 'timmy',
     name: 'Timmy',
     initials: 'TI',
+    avatarImg: 'images/timmy.jpg',
     color: '#d72638',
     level: 'Surf Strength · 3 Gym-Tage · Block A',
     targetGym: 3,
@@ -31,6 +32,7 @@ const DEFAULT_PROFILES = {
     id: 'annika',
     name: 'Annika',
     initials: 'AN',
+    avatarImg: 'images/annika.jpg',
     color: '#f4a900',
     level: 'Surf Strength · 3 Gym-Tage · Block A',
     targetGym: 3,
@@ -60,6 +62,8 @@ function defaultState() {
     planTab: 'w',
     coreTab: 'core',
     detailId: 'pull',
+    editingExId: null,
+    exercises: JSON.parse(JSON.stringify(EX)),
     profiles: JSON.parse(JSON.stringify(DEFAULT_PROFILES)),
     rest: null,
     restLeft: 0,
@@ -85,10 +89,11 @@ function loadState() {
     }
     const saved = JSON.parse(raw);
     const profiles = {
-      timmy: { ...defaults.profiles.timmy, ...(saved.profiles && saved.profiles.timmy) },
-      annika: { ...defaults.profiles.annika, ...(saved.profiles && saved.profiles.annika) }
+      timmy: { ...defaults.profiles.timmy, ...(saved.profiles && saved.profiles.timmy), avatarImg: 'images/timmy.jpg' },
+      annika: { ...defaults.profiles.annika, ...(saved.profiles && saved.profiles.annika), avatarImg: 'images/annika.jpg' }
     };
-    return { ...defaults, ...saved, profiles, restRunning: false };
+    const exercises = saved.exercises && saved.exercises.length ? saved.exercises : JSON.parse(JSON.stringify(EX));
+    return { ...defaults, ...saved, profiles, exercises, restRunning: false };
   } catch {
     return defaults;
   }
@@ -118,8 +123,27 @@ function partnerProfile() {
   return (state.profiles && state.profiles[u]) || DEFAULT_PROFILES.annika;
 }
 
+function getExercises() {
+  return state.exercises && state.exercises.length ? state.exercises : EX;
+}
+
 function currentExercise() {
-  return EX.find(e => e.id === state.detailId) || EX[0];
+  return getExercises().find(e => e.id === state.detailId) || getExercises()[0];
+}
+
+function totalSetsForCode(code) {
+  if (code === 'A1') return getExercises().reduce((sum, ex) => sum + ex.sets.length, 0);
+  const block = BLOCK_A.find(b => b.code === code);
+  return block ? countSetsInItems(block.items) : 0;
+}
+
+function sessionProgress() {
+  let done = 0, total = 0;
+  getExercises().forEach(ex => ex.sets.forEach((b, i) => {
+    total++;
+    if (getSet(ex.id, i, b).done) done++;
+  }));
+  return { done, total };
 }
 
 /* ---------- set tracking ---------- */
@@ -175,49 +199,14 @@ function onToggle(exId, i, v) {
   if (!v.done) setState({ rest: 90, restLeft: 90, restRunning: false });
 }
 
-function sessionProgress() {
-  let done = 0, total = 0;
-  EX.forEach(ex => ex.sets.forEach((b, i) => {
-    total++;
-    if (getSet(ex.id, i, b).done) done++;
-  }));
-  return { done, total };
-}
-
-/* ---------- rest timer ---------- */
-
-function tick() {
-  clearInterval(restInterval);
-  restInterval = setInterval(() => {
-    if (!state.restRunning) return;
-    if (state.restLeft <= 1) {
-      clearInterval(restInterval);
-      setState({ restLeft: 0, restRunning: false });
-      return;
-    }
-    setState({ restLeft: state.restLeft - 1 });
-  }, 1000);
-}
-
-function restPrimary() {
-  if (state.restRunning) {
-    clearInterval(restInterval);
-    setState({ restRunning: false });
-  } else {
-    setState(s => ({ restRunning: true, restLeft: s.restLeft === 0 ? 90 : s.restLeft }));
-    tick();
-  }
-}
-function restDismiss() {
-  clearInterval(restInterval);
-  setState({ rest: null, restRunning: false, restLeft: 0 });
-}
-
 /* ---------- navigation ---------- */
 
 function go(screen) { setState({ screen }); }
 function back() {
-  setState(s => ({ screen: s.screen === 'detail' ? 'session' : 'home' }));
+  setState(s => {
+    if (s.screen === 'exercises-settings') return { screen: 'profil', editingExId: null };
+    return { screen: s.screen === 'detail' ? 'session' : 'home' };
+  });
 }
 
 /* ---------- header ---------- */
@@ -227,7 +216,8 @@ const HEAD_MAP = {
   plan: ['Trainingsplan', 'Plan'],
   core: ['Täglich · 10 Minuten', 'Core & Mobility'],
   verlauf: ['Seit KW 31', 'Fortschritt'],
-  profil: ['Konto', 'Profil & Einstellungen']
+  profil: ['Konto', 'Profil & Einstellungen'],
+  'exercises-settings': ['Trainingsplan', 'Übungen anpassen']
 };
 
 function renderHeader() {
@@ -235,6 +225,9 @@ function renderHeader() {
   if (state.screen === 'home') {
     const { done } = sessionProgress();
     const gymCount = prof.gymCompletedThisWeek || 2;
+    const avatarInner = prof.avatarImg
+      ? `<img src="${prof.avatarImg}" alt="${prof.name}" class="avatar-photo">`
+      : prof.initials;
     return `
       <div class="header">
         <div class="header-top">
@@ -242,8 +235,8 @@ function renderHeader() {
             <div class="eyebrow eyebrow-yellow">Block A · Wasserphase · Woche 1</div>
             <div class="page-title">Freitag 11.9.</div>
           </div>
-          <button class="avatar-btn" data-action="nav" data-screen="profil" style="background:${prof.color}; border: 2px solid rgba(255,255,255,.5)">
-            ${prof.initials}
+          <button class="avatar-btn" data-action="nav" data-screen="profil" style="background:${prof.color}; border: 2px solid rgba(255,255,255,.6); padding:0; overflow:hidden">
+            ${avatarInner}
           </button>
         </div>
         <div class="header-stats">
@@ -275,6 +268,7 @@ function renderContent() {
     case 'core': return renderCore();
     case 'verlauf': return renderVerlauf();
     case 'profil': return renderProfil();
+    case 'exercises-settings': return renderExerciseSettings();
     default: return renderHome();
   }
 }
@@ -299,7 +293,7 @@ function getConsistencyData() {
   const { done } = sessionProgress();
 
   const tGym = Math.min(3, (t.gymCompletedThisWeek || 2) + (state.activeUser === 'timmy' && done > 0 ? 1 : 0));
-  const aGym = Math.min(3, (a.gymCompletedThisWeek || 3) + (state.activeUser === 'annika' && done > 0 ? 1 : 0));
+  const aGym = Math.min(3, (a.gymCompletedThisWeek || 2) + (state.activeUser === 'annika' && done > 0 ? 1 : 0));
 
   const tScore = (tGym * 25) + (t.coreDone ? 15 : 0) + (t.mobDone && t.mobDone[1] ? 10 : 0);
   const aScore = (aGym * 25) + (a.coreDone ? 15 : 0) + (a.mobDone && a.mobDone[1] ? 10 : 0);
@@ -349,7 +343,9 @@ function renderConsistencyCard() {
         <!-- Timmy -->
         <div class="athlete-card ${isTimmy ? 'is-me' : ''}">
           <div class="athlete-header">
-            <div class="athlete-avatar" style="background:#d72638">TI</div>
+            <div class="athlete-avatar" style="border: 1.5px solid #d72638; overflow:hidden; background:#fff">
+              <img src="images/timmy.jpg" alt="Timmy" class="avatar-photo">
+            </div>
             <div style="flex:1;min-width:0">
               <div class="athlete-name">Timmy ${isTimmy ? '<span class="badge-you">DU</span>' : ''}</div>
               <div class="athlete-streak">${c.timmy.streak} Tage Streak 🔥</div>
@@ -370,7 +366,9 @@ function renderConsistencyCard() {
         <!-- Annika -->
         <div class="athlete-card ${isAnnika ? 'is-me' : ''}">
           <div class="athlete-header">
-            <div class="athlete-avatar" style="background:#f4a900">AN</div>
+            <div class="athlete-avatar" style="border: 1.5px solid #f4a900; overflow:hidden; background:#fff">
+              <img src="images/annika.jpg" alt="Annika" class="avatar-photo">
+            </div>
             <div style="flex:1;min-width:0">
               <div class="athlete-name">Annika ${isAnnika ? '<span class="badge-you">DU</span>' : ''}</div>
               <div class="athlete-streak">${c.annika.streak} Tage Streak 🔥</div>
@@ -403,7 +401,9 @@ function renderOnboarding() {
 
       <div class="onboarding-cards">
         <button class="onboarding-btn" data-action="select-profile" data-user="timmy">
-          <div class="onboarding-avatar" style="background:#d72638">TI</div>
+          <div class="onboarding-avatar" style="overflow:hidden; border: 2.5px solid #d72638; background:#fff">
+            <img src="images/timmy.jpg" alt="Timmy" class="avatar-photo">
+          </div>
           <div class="onboarding-info">
             <div class="onboarding-name">Timmy</div>
             <div class="onboarding-detail">Surf Strength · 3 Gym-Tage · Block A</div>
@@ -412,7 +412,9 @@ function renderOnboarding() {
         </button>
 
         <button class="onboarding-btn" data-action="select-profile" data-user="annika">
-          <div class="onboarding-avatar" style="background:#f4a900">AN</div>
+          <div class="onboarding-avatar" style="overflow:hidden; border: 2.5px solid #f4a900; background:#fff">
+            <img src="images/annika.jpg" alt="Annika" class="avatar-photo">
+          </div>
           <div class="onboarding-info">
             <div class="onboarding-name">Annika</div>
             <div class="onboarding-detail">Surf Strength · 3 Gym-Tage · Block A</div>
@@ -526,13 +528,15 @@ function renderExerciseCard(ex) {
           <div class="ex-target">${ex.target}</div>
           <div class="ex-name">${ex.name}</div>
         </div>
+        ${ex.youtube ? `<a href="${ex.youtube}" target="_blank" rel="noopener noreferrer" class="yt-play-btn" title="YouTube Video öffnen">▶</a>` : ''}
         <button class="info-btn" data-action="ex-info" data-ex="${ex.id}">i</button>
       </div>
-      <div class="ex-sets">${ex.sets.map((base, i) => renderSetRow(ex, i, base)).join('')}</div>
+      <div class="ex-sets">${(ex.sets || []).map((base, i) => renderSetRow(ex, i, base)).join('')}</div>
     </div>`;
 }
 
 function renderSession() {
+  const exercises = getExercises();
   const { done, total } = sessionProgress();
   const pct = total ? Math.round(done / total * 100) : 0;
   return `
@@ -544,8 +548,8 @@ function renderSession() {
         </div>
         <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
       </div>
-      ${EX.map(renderExerciseCard).join('')}
-      <div class="tip-box">Gewicht mit ±, Wiederholungen und RPE durch Antippen. Haken loggt den Satz und bietet den Pausentimer an — starten musst du ihn selbst.</div>
+      ${exercises.map(renderExerciseCard).join('')}
+      <div class="tip-box">Gewicht mit ±, Wiederholungen und RPE durch Antippen. Haken loggt den Satz und bietet den Pausentimer an. Mit ▶ öffnest du das YouTube-Tutorial.</div>
       <button class="btn-block-outline" data-action="finish-session">Einheit abschließen</button>
     </div>`;
 }
@@ -556,25 +560,38 @@ function renderDetail() {
     <div class="stack-12">
       <div class="card">
         <div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--fg-3)">${e.target}</div>
-        <p style="font-size:14px;line-height:1.5;margin-top:10px">${e.note}</p>
+        <p style="font-size:14px;line-height:1.5;margin-top:10px">${e.note || ''}</p>
       </div>
+
+      ${e.youtube ? `
+        <a href="${e.youtube}" target="_blank" rel="noopener noreferrer" class="btn-youtube">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          <span>Video-Tutorial auf YouTube ansehen</span>
+          <span style="font-size:16px; margin-left:auto">↗</span>
+        </a>
+      ` : ''}
+
+      <button class="btn-secondary" style="width:100%" data-action="open-edit-exercise" data-ex="${e.id}">
+        ✏️ Diese Übung bearbeiten
+      </button>
+
       <div class="card">
         <div class="card-title-inv" style="color:var(--sm-navy)">Ausführung</div>
-        <div class="cue-list">${e.cues.map(c => `<div class="cue"><span class="dash">—</span><span>${c}</span></div>`).join('')}</div>
+        <div class="cue-list">${(e.cues || []).map(c => `<div class="cue"><span class="dash">—</span><span>${c}</span></div>`).join('')}</div>
       </div>
       <div class="pair">
         <div class="pair-navy">
           <div class="pair-label">Letztes Mal</div>
-          <div class="pair-value">${e.last}</div>
+          <div class="pair-value">${e.last || '—'}</div>
         </div>
         <div class="pair-white">
           <div class="pair-label">Alternative</div>
-          <div class="pair-value">${e.alt}</div>
+          <div class="pair-value">${e.alt || '—'}</div>
         </div>
       </div>
       <div class="card-yellow">
         <div class="card-title-inv">Warum surfrelevant</div>
-        <p style="font-size:13.5px;line-height:1.5;margin-top:6px;color:var(--sm-navy-900)">${e.why}</p>
+        <p style="font-size:13.5px;line-height:1.5;margin-top:6px;color:var(--sm-navy-900)">${e.why || ''}</p>
       </div>
     </div>`;
 }
@@ -755,19 +772,126 @@ function renderVerlauf() {
     </div>`;
 }
 
+function renderExerciseSettings() {
+  const exercises = getExercises();
+  const editing = state.editingExId ? exercises.find(e => e.id === state.editingExId) : null;
+
+  if (editing) {
+    return `
+      <div class="stack-12">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Übung bearbeiten</div>
+            <button class="link-btn" data-action="cancel-edit-exercise">‹ Zurück</button>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:13px;margin-top:14px">
+            <div>
+              <label class="form-label">Übungsname</label>
+              <input type="text" id="ex-name" class="form-input" value="${editing.name}">
+            </div>
+
+            <div>
+              <label class="form-label">Zielvorgabe (Sätze × Wdh. · RPE)</label>
+              <input type="text" id="ex-target" class="form-input" value="${editing.target}">
+            </div>
+
+            <div>
+              <label class="form-label">YouTube Tutorial Link (Video URL)</label>
+              <input type="url" id="ex-youtube" class="form-input" value="${editing.youtube || ''}" placeholder="https://www.youtube.com/watch?v=...">
+            </div>
+
+            <div>
+              <label class="form-label">Alternative Übung</label>
+              <input type="text" id="ex-alt" class="form-input" value="${editing.alt || ''}">
+            </div>
+
+            <div>
+              <label class="form-label">Ausführungs-Tipp / Notiz</label>
+              <textarea id="ex-note" class="form-input" rows="3">${editing.note || ''}</textarea>
+            </div>
+
+            <div>
+              <label class="form-label">Warum surfrelevant</label>
+              <textarea id="ex-why" class="form-input" rows="2">${editing.why || ''}</textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:10px">
+              <button class="btn-block-red" style="flex:1" data-action="save-edit-exercise" data-ex="${editing.id}">Speichern</button>
+              <button class="btn-secondary" data-action="cancel-edit-exercise">Abbrechen</button>
+            </div>
+
+            <button class="link-btn" style="color:var(--sm-red);margin-top:12px;text-align:center" data-action="delete-exercise" data-ex="${editing.id}">
+              🗑️ Übung aus Plan entfernen
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="stack-12">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow eyebrow-yellow">Einheit A1 · Plan-Editor</div>
+            <div class="card-title">Übungen anpassen</div>
+          </div>
+          <button class="pill-btn" data-action="reset-exercises">Standard</button>
+        </div>
+        <p style="font-size:12.5px;color:var(--fg-3);margin-top:6px;line-height:1.45">
+          Passe die Übungen, Vorgaben und YouTube-Tutorials an. Gilt automatisch für Timmy &amp; Annika gemeinsam.
+        </p>
+      </div>
+
+      <div class="card card-flush">
+        ${exercises.map((ex, i) => `
+          <div class="setting-row" style="padding:13px 14px">
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--sm-navy)">${i + 1}. ${ex.name}</div>
+              <div style="font-size:11.5px;color:var(--fg-3);margin-top:2px">${ex.target}</div>
+              ${ex.youtube ? `<div style="font-size:11px;color:var(--sm-red);margin-top:3px;font-weight:600">▶ YouTube-Video hinterlegt</div>` : '<div style="font-size:11px;color:#9ca3af;margin-top:3px">Kein Video hinterlegt</div>'}
+            </div>
+            <button class="btn-secondary" style="padding:7px 12px;font-size:11px" data-action="open-edit-exercise" data-ex="${ex.id}">
+              Bearbeiten
+            </button>
+          </div>`).join('')}
+      </div>
+
+      <button class="btn-block-outline" data-action="add-new-exercise">
+        + Neue Übung hinzufügen
+      </button>
+    </div>`;
+}
+
 function renderProfil() {
   const prof = currentProfile();
   const otherUser = state.activeUser === 'timmy' ? 'annika' : 'timmy';
   const otherName = otherUser === 'timmy' ? 'Timmy' : 'Annika';
+  const avatarInner = prof.avatarImg
+    ? `<img src="${prof.avatarImg}" alt="${prof.name}" class="avatar-photo">`
+    : prof.initials;
 
   return `
     <div class="stack-12">
       <div class="card-navy profile-head">
-        <div class="profile-avatar" style="background:${prof.color}; color:#fff">${prof.initials}</div>
+        <div class="profile-avatar" style="border: 2px solid rgba(255,255,255,.6); overflow:hidden; background:${prof.color}; padding:0">
+          ${avatarInner}
+        </div>
         <div style="flex:1;min-width:0">
           <div class="profile-name">${prof.name}</div>
           <div class="profile-sub">${prof.level}</div>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title-inv" style="color:var(--sm-navy)">Trainingsplan &amp; Übungen</div>
+        <p style="font-size:12.5px;line-height:1.45;color:var(--fg-2);margin-top:6px">
+          Übungen austauschen, Vorgaben ändern und eigene YouTube-Tutorials für eure Einheiten hinterlegen.
+        </p>
+        <button class="btn-block-red" style="margin-top:12px" data-action="nav" data-screen="exercises-settings">
+          🏋️ Übungen &amp; YouTube-Videos anpassen
+        </button>
       </div>
 
       <div class="card">
@@ -889,13 +1013,84 @@ document.getElementById('app').addEventListener('click', (e) => {
     case 'start-session': setState({ screen: 'session' }); break;
     case 'finish-session': setState({ screen: 'home' }); break;
     case 'ex-info': setState({ screen: 'detail', detailId: exId }); break;
+    case 'open-edit-exercise': {
+      setState({ screen: 'exercises-settings', editingExId: el.dataset.ex });
+      break;
+    }
+    case 'cancel-edit-exercise': {
+      setState({ editingExId: null });
+      break;
+    }
+    case 'add-new-exercise': {
+      const newId = 'ex_' + Date.now();
+      const newEx = {
+        id: newId,
+        name: 'Neue Übung',
+        target: '3 × 10 · RPE 7',
+        youtube: '',
+        note: '',
+        alt: '',
+        why: '',
+        cues: ['Saubere Ausführung', 'Gleichmäßig atmen'],
+        sets: [{ w: 10, r: 10 }, { w: 10, r: 10 }, { w: 10, r: 10 }]
+      };
+      setState(s => ({
+        exercises: [...getExercises(), newEx],
+        editingExId: newId,
+        screen: 'exercises-settings'
+      }));
+      break;
+    }
+    case 'save-edit-exercise': {
+      const nameEl = document.getElementById('ex-name');
+      const targetEl = document.getElementById('ex-target');
+      const ytEl = document.getElementById('ex-youtube');
+      const altEl = document.getElementById('ex-alt');
+      const noteEl = document.getElementById('ex-note');
+      const whyEl = document.getElementById('ex-why');
+
+      const name = nameEl ? nameEl.value.trim() : 'Übung';
+      const target = targetEl ? targetEl.value.trim() : '3 × 10 · RPE 7';
+      const youtube = ytEl ? ytEl.value.trim() : '';
+      const alt = altEl ? altEl.value.trim() : '';
+      const note = noteEl ? noteEl.value.trim() : '';
+      const why = whyEl ? whyEl.value.trim() : '';
+
+      setState(s => {
+        const updated = getExercises().map(ex => {
+          if (ex.id !== exId) return ex;
+          return { ...ex, name, target, youtube, alt, note, why };
+        });
+        return { exercises: updated, editingExId: null };
+      });
+      break;
+    }
+    case 'delete-exercise': {
+      if (confirm('Diese Übung wirklich aus Einheit A1 entfernen?')) {
+        setState(s => ({
+          exercises: getExercises().filter(ex => ex.id !== exId),
+          editingExId: null
+        }));
+      }
+      break;
+    }
+    case 'reset-exercises': {
+      if (confirm('Alle Übungen und YouTube-Links auf den Standard-Plan zurücksetzen?')) {
+        setState({
+          exercises: JSON.parse(JSON.stringify(EX)),
+          editingExId: null
+        });
+      }
+      break;
+    }
     case 'set-wup':
     case 'set-wdown':
     case 'set-reps':
     case 'set-rpe':
     case 'set-toggle': {
-      const ex = EX.find(x => x.id === exId);
-      const base = ex.sets[idx];
+      const ex = getExercises().find(x => x.id === exId);
+      if (!ex) break;
+      const base = ex.sets[idx] || { w: 10, r: 10 };
       const v = getSet(exId, idx, base);
       if (action === 'set-wup') onWUp(exId, idx, v);
       else if (action === 'set-wdown') onWDown(exId, idx, v);
