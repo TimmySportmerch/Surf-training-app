@@ -315,70 +315,102 @@ function renderHeader() {
 /* ---------- consistency widget ---------- */
 
 function renderConsistencyCard() {
-  const current = currentProfile();
-  const partner = partnerProfile();
+  const isTimmy = state.activeUser === 'timmy';
+  const isAnnika = state.activeUser === 'annika';
 
-  const currentGym = sessionProgress('A1').done > 0 ? Math.min(current.targetGym, current.gymCompletedThisWeek + 1) : current.gymCompletedThisWeek;
-  const currentCore = current.streak + (current.coreDone ? 1 : 0);
-  const currentMob = current.mobDone && current.mobDone[1] ? 100 : (current.mobDone && current.mobDone[0] ? 50 : 0);
-  const currentScore = Math.round((currentGym / current.targetGym) * 45 + (Math.min(currentCore, 7) / 7) * 35 + (currentMob / 100) * 20);
+  const profTimmy = (state.profiles && state.profiles.timmy) || DEFAULT_PROFILES.timmy;
+  const profAnnika = (state.profiles && state.profiles.annika) || DEFAULT_PROFILES.annika;
 
-  const partnerGym = partner.gymCompletedThisWeek;
-  const partnerCore = partner.streak + (partner.coreDone ? 1 : 0);
-  const partnerMob = partner.mobDone && partner.mobDone[1] ? 100 : (partner.mobDone && partner.mobDone[0] ? 50 : 0);
-  const partnerScore = Math.round((partnerGym / partner.targetGym) * 45 + (Math.min(partnerCore, 7) / 7) * 35 + (partnerMob / 100) * 20);
+  const timmyGym = isTimmy && sessionProgress('A1').done > 0
+    ? Math.min(profTimmy.targetGym, profTimmy.gymCompletedThisWeek + 1)
+    : profTimmy.gymCompletedThisWeek;
+  const timmyCoreDone = profTimmy.coreDone;
+  const timmyStreak = profTimmy.streak + (timmyCoreDone ? 1 : 0);
+  const timmyScore = Math.round((timmyGym / profTimmy.targetGym) * 50 + (timmyCoreDone ? 30 : 15) + (timmyStreak >= 5 ? 20 : 10));
 
-  const isLeading = currentScore > partnerScore;
-  const isTied = currentScore === partnerScore;
-  const statusBadge = isTied ? '🤝 Gleichauf' : (isLeading ? `🔥 ${current.name} führt` : `⚡ ${partner.name} führt`);
+  const annikaGym = isAnnika && sessionProgress('A1').done > 0
+    ? Math.min(profAnnika.targetGym, profAnnika.gymCompletedThisWeek + 1)
+    : profAnnika.gymCompletedThisWeek;
+  const annikaCoreDone = profAnnika.coreDone;
+  const annikaStreak = profAnnika.streak + (annikaCoreDone ? 1 : 0);
+  const annikaScore = Math.round((annikaGym / profAnnika.targetGym) * 50 + (annikaCoreDone ? 30 : 15) + (annikaStreak >= 5 ? 20 : 10));
 
-  const currentAvatar = current.avatarImg ? `<img src="${current.avatarImg}" alt="${current.name}" class="avatar-photo">` : current.initials;
-  const partnerAvatar = partner.avatarImg ? `<img src="${partner.avatarImg}" alt="${partner.name}" class="avatar-photo">` : partner.initials;
+  let leaderBadge = '🤝 Gleichauf';
+  let leaderText = 'Beide voll auf Kurs für Block B!';
+  if (timmyScore > annikaScore) {
+    leaderBadge = '🔥 Timmy führt';
+    leaderText = isTimmy ? 'Stark, Timmy! Du hast diese Woche die Nase vorn.' : 'Timmy führt knapp — hol dir die nächste Session!';
+  } else if (annikaScore > timmyScore) {
+    leaderBadge = '🔥 Annika führt';
+    leaderText = isAnnika ? 'Stark, Annika! Du hast diese Woche die Nase vorn.' : 'Annika führt knapp — hol dir die nächste Session!';
+  }
+
+  const timmyAvatar = profTimmy.avatarImg
+    ? `<img src="${profTimmy.avatarImg}" alt="Timmy" class="avatar-photo">`
+    : profTimmy.initials;
+  const annikaAvatar = profAnnika.avatarImg
+    ? `<img src="${profAnnika.avatarImg}" alt="Annika" class="avatar-photo">`
+    : profAnnika.initials;
 
   return `
-    <div class="card card-flush duel-widget">
-      <div class="duel-head">
+    <div class="card card-consistency">
+      <div class="consistency-top">
         <div>
-          <div class="eyebrow eyebrow-yellow">Konsistenz-Duell · KW 37</div>
-          <div class="duel-title">${current.name} &amp; ${partner.name}</div>
+          <div class="eyebrow eyebrow-yellow">Duell der Woche · Konsistenz</div>
+          <div class="consistency-title">Timmy vs. Annika</div>
         </div>
-        <div class="duel-badge">${statusBadge}</div>
+        <span class="consistency-pill">${leaderBadge}</span>
       </div>
 
-      <div class="duel-grid">
-        <div class="duel-user ${isLeading ? 'leading' : ''}">
-          <div class="duel-user-row">
-            <div class="duel-avatar" style="border: 2px solid ${current.color}; background:#fff; overflow:hidden; padding:0">
-              ${currentAvatar}
+      <div class="consistency-grid">
+        <!-- Timmy -->
+        <div class="athlete-card ${isTimmy ? 'is-me' : ''}">
+          <div class="athlete-header">
+            <div class="athlete-avatar" style="background:#d72638">
+              ${timmyAvatar}
             </div>
             <div style="flex:1;min-width:0">
-              <div class="duel-name">${current.name} <span class="duel-you">(Du)</span></div>
-              <div class="duel-sub">Score: <strong>${currentScore}%</strong></div>
+              <div class="athlete-name">Timmy ${isTimmy ? '<span class="badge-you">DU</span>' : ''}</div>
+              <div class="athlete-streak">${timmyStreak} Tage Streak 🔥</div>
             </div>
           </div>
-          <div class="duel-stats">
-            <div class="duel-stat-row"><span>Gym-Tage</span><strong>${currentGym} / ${current.targetGym}</strong></div>
-            <div class="duel-stat-row"><span>Core-Streak</span><strong>${currentCore} Tage</strong></div>
-            <div class="duel-stat-row"><span>Mobility</span><strong>${currentMob}%</strong></div>
+          <div class="metric-row">
+            <div class="metric-label"><span>Gym</span><strong>${timmyGym} / 3</strong></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${Math.round((timmyGym / 3) * 100)}%; background:#d72638"></div></div>
+          </div>
+          <div class="metric-subrow">
+            <span class="sub-label">Core heute:</span>
+            <span class="sub-val ${timmyCoreDone ? 'done' : ''}">${timmyCoreDone ? '✓ Erledigt' : 'Offen'}</span>
           </div>
         </div>
 
-        <div class="duel-user ${!isLeading && !isTied ? 'leading' : ''}">
-          <div class="duel-user-row">
-            <div class="duel-avatar" style="border: 2px solid ${partner.color}; background:#fff; overflow:hidden; padding:0">
-              ${partnerAvatar}
+        <div class="vs-badge">VS</div>
+
+        <!-- Annika -->
+        <div class="athlete-card ${isAnnika ? 'is-me' : ''}">
+          <div class="athlete-header">
+            <div class="athlete-avatar" style="background:#f4a900">
+              ${annikaAvatar}
             </div>
             <div style="flex:1;min-width:0">
-              <div class="duel-name">${partner.name}</div>
-              <div class="duel-sub">Score: <strong>${partnerScore}%</strong></div>
+              <div class="athlete-name">Annika ${isAnnika ? '<span class="badge-you">DU</span>' : ''}</div>
+              <div class="athlete-streak">${annikaStreak} Tage Streak 🔥</div>
             </div>
           </div>
-          <div class="duel-stats">
-            <div class="duel-stat-row"><span>Gym-Tage</span><strong>${partnerGym} / ${partner.targetGym}</strong></div>
-            <div class="duel-stat-row"><span>Core-Streak</span><strong>${partnerCore} Tage</strong></div>
-            <div class="duel-stat-row"><span>Mobility</span><strong>${partnerMob}%</strong></div>
+          <div class="metric-row">
+            <div class="metric-label"><span>Gym</span><strong>${annikaGym} / 3</strong></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${Math.round((annikaGym / 3) * 100)}%; background:#f4a900"></div></div>
+          </div>
+          <div class="metric-subrow">
+            <span class="sub-label">Core heute:</span>
+            <span class="sub-val ${annikaCoreDone ? 'done' : ''}">${annikaCoreDone ? '✓ Erledigt' : 'Offen'}</span>
           </div>
         </div>
+      </div>
+
+      <div class="consistency-footer">
+        <span class="surf-icon">🏄</span>
+        <span class="consistency-note">${leaderText}</span>
       </div>
     </div>`;
 }

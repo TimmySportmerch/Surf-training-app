@@ -525,8 +525,10 @@ a, a:hover { color: var(--sm-red); }
 }
 .athlete-avatar {
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
   border-radius: 999px;
   color: #fff;
   display: flex;
@@ -536,30 +538,46 @@ a, a:hover { color: var(--sm-red); }
   font-weight: 800;
   font-style: italic;
   font-size: 12px;
+  overflow: hidden;
+  padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+.athlete-avatar .avatar-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 999px;
+  display: block;
 }
 .athlete-name {
   font-family: var(--font-display);
   font-weight: 800;
   font-style: italic;
   text-transform: uppercase;
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--sm-navy);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 4px;
+  line-height: 1.1;
 }
 .badge-you {
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 8.5px;
+  font-weight: 800;
   background: var(--sm-red);
   color: #fff;
   padding: 1px 5px;
   border-radius: 4px;
+  letter-spacing: .04em;
 }
 .athlete-streak {
   font-size: 10.5px;
   color: var(--fg-3);
   font-weight: 500;
+  margin-top: 2px;
 }
 .metric-row {
   display: flex;
@@ -594,14 +612,14 @@ a, a:hover { color: var(--sm-red); }
   justify-content: space-between;
   align-items: center;
   font-size: 10.5px;
-  padding-top: 4px;
+  padding-top: 5px;
   border-top: 1px dashed var(--border);
 }
 .sub-label {
   color: var(--fg-3);
 }
 .sub-val {
-  font-weight: 600;
+  font-weight: 700;
   color: #9ca3af;
 }
 .sub-val.done {
