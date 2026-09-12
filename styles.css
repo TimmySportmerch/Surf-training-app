@@ -694,6 +694,37 @@ a, a:hover { color: var(--sm-red); }
   line-height: 1.35;
   font-weight: 500;
 }
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fg-2);
+  background: var(--bg-1);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  margin-left: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.sync-badge.synced {
+  color: #059669;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+.sync-badge.syncing {
+  color: #2563eb;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+.sync-badge.error {
+  color: #d97706;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
 .btn-secondary {
   border: 1px solid var(--border);
   background: #fff;

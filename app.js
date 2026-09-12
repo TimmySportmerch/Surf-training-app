@@ -97,11 +97,183 @@ function loadState() {
   }
 }
 
+/* ---------- Supabase Cloud Sync ---------- */
+const SUPABASE_URL = 'https://ufmdksvifegzvxpjsrds.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmbWRrc3ZpZmVnenZ4cGpzcmRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNzI3NTIsImV4cCI6MjEwNDc0ODc1Mn0.-MvN7-sxpweQAs2yDsajB3RFCvYuhxv6O7XDnkeK19Y';
+
+let supabaseClient = null;
+try {
+  if (window.supabase && window.supabase.createClient) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (err) {
+  console.warn('Supabase client init error:', err);
+}
+
+let syncStatus = 'idle'; // 'idle' | 'syncing' | 'synced' | 'error'
+let cloudSyncTimeout = null;
+
+function updateSyncBadge() {
+  const badges = document.querySelectorAll('.sync-badge');
+  badges.forEach(badge => {
+    badge.className = `sync-badge ${syncStatus}`;
+    if (syncStatus === 'syncing') {
+      badge.innerHTML = `🔄 Synchronisiere...`;
+    } else if (syncStatus === 'synced') {
+      badge.innerHTML = `🟢 Live-Sync`;
+    } else if (syncStatus === 'error') {
+      badge.innerHTML = `⚠️ Offline-Modus`;
+    } else {
+      badge.innerHTML = `☁️ Cloud-Sync`;
+    }
+  });
+}
+
+function triggerCloudSync() {
+  if (!supabaseClient || !state.activeUser) return;
+  if (cloudSyncTimeout) clearTimeout(cloudSyncTimeout);
+
+  syncStatus = 'syncing';
+  updateSyncBadge();
+
+  cloudSyncTimeout = setTimeout(async () => {
+    try {
+      const u = state.activeUser;
+      const prof = state.profiles && state.profiles[u];
+      if (prof) {
+        const { error: profErr } = await supabaseClient.from('user_sync').upsert({
+          id: `profile_${u}`,
+          data: prof,
+          updated_at: new Date().toISOString()
+        });
+        if (profErr) throw profErr;
+      }
+      if (state.units) {
+        await supabaseClient.from('user_sync').upsert({
+          id: 'units',
+          data: state.units,
+          updated_at: new Date().toISOString()
+        });
+      }
+      syncStatus = 'synced';
+      updateSyncBadge();
+    } catch (err) {
+      console.warn('Cloud sync push error:', err);
+      syncStatus = 'error';
+      updateSyncBadge();
+    }
+  }, 700);
+}
+
+async function pullCloudSync() {
+  if (!supabaseClient) return;
+  try {
+    syncStatus = 'syncing';
+    updateSyncBadge();
+
+    const { data, error } = await supabaseClient.from('user_sync').select('*');
+    if (error) throw error;
+    if (!data || !Array.isArray(data)) {
+      syncStatus = 'synced';
+      updateSyncBadge();
+      return;
+    }
+
+    let changed = false;
+    data.forEach(row => {
+      if (row.id === 'profile_timmy' && row.data) {
+        const cloudTime = (row.data._updatedAt) || (row.updated_at ? new Date(row.updated_at).getTime() : 0);
+        const localTime = (state.profiles.timmy && state.profiles.timmy._updatedAt) || 0;
+        const hasLocalProgress = state.profiles.timmy && Object.keys(state.profiles.timmy.sets || {}).length > 0;
+        if (state.activeUser !== 'timmy' || cloudTime > localTime || !hasLocalProgress) {
+          state.profiles.timmy = { ...DEFAULT_PROFILES.timmy, ...row.data, avatarImg: 'images/timmy.jpg' };
+          changed = true;
+        }
+      } else if (row.id === 'profile_annika' && row.data) {
+        const cloudTime = (row.data._updatedAt) || (row.updated_at ? new Date(row.updated_at).getTime() : 0);
+        const localTime = (state.profiles.annika && state.profiles.annika._updatedAt) || 0;
+        const hasLocalProgress = state.profiles.annika && Object.keys(state.profiles.annika.sets || {}).length > 0;
+        if (state.activeUser !== 'annika' || cloudTime > localTime || !hasLocalProgress) {
+          state.profiles.annika = { ...DEFAULT_PROFILES.annika, ...row.data, avatarImg: 'images/annika.jpg' };
+          changed = true;
+        }
+      } else if (row.id === 'units' && row.data) {
+        state.units = { ...DEFAULT_UNITS, ...row.data };
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+      renderAll();
+    }
+    syncStatus = 'synced';
+    updateSyncBadge();
+  } catch (err) {
+    console.warn('Pull cloud sync error:', err);
+    syncStatus = 'error';
+    updateSyncBadge();
+  }
+}
+
+function initRealtimeSync() {
+  if (!supabaseClient) return;
+  try {
+    supabaseClient
+      .channel('public:user_sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_sync' },
+        (payload) => {
+          const row = payload.new;
+          if (!row || !row.id || !row.data) return;
+
+          let changed = false;
+          if (row.id === 'profile_timmy') {
+            const cloudTime = (row.data._updatedAt) || (row.updated_at ? new Date(row.updated_at).getTime() : 0);
+            const localTime = (state.profiles.timmy && state.profiles.timmy._updatedAt) || 0;
+            if (state.activeUser !== 'timmy' || cloudTime > localTime) {
+              state.profiles.timmy = { ...DEFAULT_PROFILES.timmy, ...row.data, avatarImg: 'images/timmy.jpg' };
+              changed = true;
+            }
+          } else if (row.id === 'profile_annika') {
+            const cloudTime = (row.data._updatedAt) || (row.updated_at ? new Date(row.updated_at).getTime() : 0);
+            const localTime = (state.profiles.annika && state.profiles.annika._updatedAt) || 0;
+            if (state.activeUser !== 'annika' || cloudTime > localTime) {
+              state.profiles.annika = { ...DEFAULT_PROFILES.annika, ...row.data, avatarImg: 'images/annika.jpg' };
+              changed = true;
+            }
+          } else if (row.id === 'units') {
+            state.units = { ...DEFAULT_UNITS, ...row.data };
+            changed = true;
+          }
+
+          if (changed) {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+            renderAll();
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          syncStatus = 'synced';
+          updateSyncBadge();
+        }
+      });
+  } catch (err) {
+    console.warn('Realtime subscription error:', err);
+  }
+}
+
 let state = loadState();
 let restInterval = null;
 
 function saveState() {
+  if (state.activeUser && state.profiles && state.profiles[state.activeUser]) {
+    state.profiles[state.activeUser]._updatedAt = Date.now();
+  }
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+  triggerCloudSync();
 }
 
 function setState(patch) {
@@ -395,6 +567,9 @@ function renderConsistencyCard() {
       <div class="consistency-footer">
         <span class="surf-icon">🏄</span>
         <span class="consistency-note">${leaderText}</span>
+        <div class="sync-badge ${syncStatus}" data-action="manual-sync" title="Tippen zum Synchronisieren">
+          ${syncStatus === 'syncing' ? '🔄 Synchronisiere...' : (syncStatus === 'synced' ? '🟢 Live-Sync' : (syncStatus === 'error' ? '⚠️ Offline-Modus' : '☁️ Cloud-Sync'))}
+        </div>
       </div>
     </div>`;
 }
@@ -1044,6 +1219,21 @@ function renderProfil() {
       </div>
 
       <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="card-title-inv" style="color:var(--sm-navy)">Supabase Cloud-Sync</div>
+          <div class="sync-badge ${syncStatus}" data-action="manual-sync" title="Tippen zum Synchronisieren">
+            ${syncStatus === 'syncing' ? '🔄 Synchronisiere...' : (syncStatus === 'synced' ? '🟢 Verbunden' : (syncStatus === 'error' ? '⚠️ Offline-Modus' : '☁️ Cloud-Sync'))}
+          </div>
+        </div>
+        <p style="font-size:12.5px;line-height:1.45;color:var(--fg-2);margin-top:6px">
+          Sichert deine Trainingsdaten, Sätze und Übungs-Anpassungen in Echtzeit in der Cloud. Funktioniert auf iPhone und Desktop.
+        </p>
+        <button class="btn-secondary" style="margin-top:12px; width:100%" data-action="manual-sync">
+          ☁️ Jetzt mit Supabase synchronisieren
+        </button>
+      </div>
+
+      <div class="card">
         <div class="card-title-inv" style="color:var(--sm-navy)">Handy-Zuweisung</div>
         <p style="font-size:12.5px;line-height:1.45;color:var(--fg-2);margin-top:6px">
           Dieses Smartphone ist aktuell auf <strong>${prof.name}</strong> eingestellt. Deine Sätze und Streaks werden hier gesichert.
@@ -1196,11 +1386,18 @@ document.getElementById('app').addEventListener('click', (e) => {
   switch (action) {
     case 'select-profile': {
       setState({ activeUser: el.dataset.user });
+      pullCloudSync();
       break;
     }
     case 'switch-user': {
       const nextUser = state.activeUser === 'timmy' ? 'annika' : 'timmy';
       setState({ activeUser: nextUser });
+      pullCloudSync();
+      break;
+    }
+    case 'manual-sync': {
+      pullCloudSync();
+      triggerCloudSync();
       break;
     }
     case 'nav': go(el.dataset.screen); break;
@@ -1422,3 +1619,5 @@ document.getElementById('app').addEventListener('click', (e) => {
 });
 
 renderAll();
+pullCloudSync();
+initRealtimeSync();
