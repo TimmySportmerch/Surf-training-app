@@ -8,7 +8,7 @@ const DEFAULT_PROFILES = {
     name: 'Timmy',
     initials: 'TI',
     color: '#d72638',
-    level: 'Fortgeschritten · RPE-Deckel 8 · 3 Gym-Tage',
+    level: 'Surf Strength · 3 Gym-Tage · Block A',
     targetGym: 3,
     gymCompletedThisWeek: 2,
     streak: 5,
@@ -17,7 +17,7 @@ const DEFAULT_PROFILES = {
     sets: {},
     settings: { 0: true, 1: true, 2: false, 3: true },
     records: [
-      { name: 'Klimmzug beschwert', when: 'Mo 8.9.', value: '+5 kg × 7', delta: '+1 Wdh.' },
+      { name: 'Klimmzug / Latzug', when: 'Mo 8.9.', value: '+5 kg × 7', delta: '+1 Wdh.' },
       { name: 'Langhantelrudern', when: 'Mo 8.9.', value: '55 kg × 9', delta: '+2,5 kg' },
       { name: 'Goblet Squat', when: 'Mi 10.9.', value: '32 kg × 10', delta: '+2 Wdh.' },
       { name: 'Farmer Carry', when: 'Mo 8.9.', value: '2 × 32 kg', delta: '+40 m' }
@@ -32,23 +32,23 @@ const DEFAULT_PROFILES = {
     name: 'Annika',
     initials: 'AN',
     color: '#f4a900',
-    level: 'Intermediate · RPE-Deckel 7 · 3 Gym-Tage',
+    level: 'Surf Strength · 3 Gym-Tage · Block A',
     targetGym: 3,
-    gymCompletedThisWeek: 3,
-    streak: 6,
-    coreDone: true,
-    mobDone: { 0: true, 1: true },
+    gymCompletedThisWeek: 2,
+    streak: 5,
+    coreDone: false,
+    mobDone: { 0: true, 1: false },
     sets: {},
-    settings: { 0: true, 1: true, 2: true, 3: true },
+    settings: { 0: true, 1: true, 2: false, 3: true },
     records: [
-      { name: 'Latzug am Kabel', when: 'Di 9.9.', value: '45 kg × 8', delta: '+2,5 kg' },
-      { name: 'Kurzhantelrudern', when: 'Di 9.9.', value: '18 kg × 10', delta: '+1 Wdh.' },
-      { name: 'Goblet Squat', when: 'Do 11.9.', value: '24 kg × 10', delta: '+2 Wdh.' },
-      { name: 'Farmer Carry', when: 'Di 9.9.', value: '2 × 20 kg', delta: '+20 m' }
+      { name: 'Klimmzug / Latzug', when: 'Mo 8.9.', value: '45 kg × 8', delta: '+2,5 kg' },
+      { name: 'Kurzhantelrudern', when: 'Mo 8.9.', value: '18 kg × 10', delta: '+1 Wdh.' },
+      { name: 'Goblet Squat', when: 'Mi 10.9.', value: '24 kg × 10', delta: '+2 Wdh.' },
+      { name: 'Farmer Carry', when: 'Mo 8.9.', value: '2 × 20 kg', delta: '+40 m' }
     ],
     bars: [
-      { label: 'KW31', total: 24 }, { label: 'KW32', total: 32 }, { label: 'KW33', total: 36 },
-      { label: 'KW34', total: 40 }, { label: 'KW35', total: 38 }, { label: 'KW36', total: 34 }
+      { label: 'KW31', total: 30 }, { label: 'KW32', total: 38 }, { label: 'KW33', total: 34 },
+      { label: 'KW34', total: 46 }, { label: 'KW35', total: 42 }, { label: 'KW36', total: 28 }
     ]
   }
 };
@@ -406,7 +406,7 @@ function renderOnboarding() {
           <div class="onboarding-avatar" style="background:#d72638">TI</div>
           <div class="onboarding-info">
             <div class="onboarding-name">Timmy</div>
-            <div class="onboarding-detail">Fortgeschritten · RPE-Deckel 8 · 3 Gym-Tage</div>
+            <div class="onboarding-detail">Surf Strength · 3 Gym-Tage · Block A</div>
           </div>
           <span class="onboarding-arrow">›</span>
         </button>
@@ -415,7 +415,7 @@ function renderOnboarding() {
           <div class="onboarding-avatar" style="background:#f4a900">AN</div>
           <div class="onboarding-info">
             <div class="onboarding-name">Annika</div>
-            <div class="onboarding-detail">Intermediate · RPE-Deckel 7 · 3 Gym-Tage</div>
+            <div class="onboarding-detail">Surf Strength · 3 Gym-Tage · Block A</div>
           </div>
           <span class="onboarding-arrow">›</span>
         </button>
