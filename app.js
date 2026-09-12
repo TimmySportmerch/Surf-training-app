@@ -1267,6 +1267,10 @@ function renderProfil() {
         <div class="card-title-inv">Die eine Regel</div>
         <p style="font-size:13px;line-height:1.5;margin-top:6px;color:var(--sm-navy-900)">Face Pulls und Außenrotationen werden nie gestrichen, auch nicht wenn die Zeit knapp wird. Die Paddelschulter ist die Verletzung, die Surfer aus dem Wasser holt.</p>
       </div>
+
+      <div style="text-align:center;padding:10px 0 4px;color:var(--fg-3);font-size:11px;font-weight:600">
+        Surf Gym Tracker · v3.3.0 · Supabase Live-Sync aktiv
+      </div>
     </div>`;
 }
 
