@@ -739,4 +739,82 @@ a, a:hover { color: var(--sm-red); }
   display: block;
 }
 
+/* ---------- unit tabs & plan actions ---------- */
+.unit-scroll-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.unit-scroll-pills::-webkit-scrollbar {
+  display: none;
+}
+.unit-pill {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--sm-navy);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.unit-pill.active {
+  background: var(--sm-navy);
+  color: #fff;
+  border-color: var(--sm-navy);
+  box-shadow: 0 2px 6px rgba(11, 15, 23, 0.15);
+}
+.plan-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.plan-btn-start {
+  flex: 1;
+  background: var(--sm-red);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 12px;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.plan-btn-start:hover {
+  background: var(--sm-red-dark);
+}
+.plan-btn-edit {
+  background: #fff;
+  color: var(--sm-navy);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.plan-btn-edit:hover {
+  background: #f9fafb;
+}
+
+
 

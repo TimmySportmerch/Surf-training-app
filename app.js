@@ -57,13 +57,16 @@ const DEFAULT_PROFILES = {
 
 function defaultState() {
   return {
-    activeUser: null, // null triggers the initial profile picker
+    activeUser: null, // null triggers onboarding
     screen: 'home',
     planTab: 'w',
     coreTab: 'core',
-    detailId: 'pull',
+    activeUnitId: 'A1',
+    selectedUnit: 'A1',
+    selectedBlock: 'A',
+    detailId: null,
     editingExId: null,
-    exercises: JSON.parse(JSON.stringify(EX)),
+    units: JSON.parse(JSON.stringify(DEFAULT_UNITS)),
     profiles: JSON.parse(JSON.stringify(DEFAULT_PROFILES)),
     rest: null,
     restLeft: 0,
@@ -75,25 +78,36 @@ function loadState() {
   const defaults = defaultState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      // Check legacy v1 storage
-      const v1Raw = localStorage.getItem('surfGymTracker.v1');
-      if (v1Raw) {
-        const v1 = JSON.parse(v1Raw);
-        defaults.profiles.timmy.sets = v1.sets || {};
-        defaults.profiles.timmy.coreDone = !!v1.coreDone;
-        defaults.profiles.timmy.mobDone = v1.mobDone || defaults.profiles.timmy.mobDone;
-        defaults.profiles.timmy.settings = v1.settings || defaults.profiles.timmy.settings;
-      }
-      return defaults;
-    }
+    if (!raw) return defaults;
     const saved = JSON.parse(raw);
     const profiles = {
       timmy: { ...defaults.profiles.timmy, ...(saved.profiles && saved.profiles.timmy), avatarImg: 'images/timmy.jpg' },
       annika: { ...defaults.profiles.annika, ...(saved.profiles && saved.profiles.annika), avatarImg: 'images/annika.jpg' }
     };
-    const exercises = saved.exercises && saved.exercises.length ? saved.exercises : JSON.parse(JSON.stringify(EX));
-    return { ...defaults, ...saved, profiles, exercises, restRunning: false };
+
+    // Restore units (merge saved units with default units)
+    let units = JSON.parse(JSON.stringify(DEFAULT_UNITS));
+    if (saved.units) {
+      Object.keys(DEFAULT_UNITS).forEach(k => {
+        if (saved.units[k] && Array.isArray(saved.units[k])) {
+          units[k] = saved.units[k];
+        }
+      });
+    } else if (saved.exercises && Array.isArray(saved.exercises)) {
+      // Migrate legacy A1 exercises
+      units['A1'] = saved.exercises;
+    }
+
+    return {
+      ...defaults,
+      ...saved,
+      profiles,
+      units,
+      activeUnitId: saved.activeUnitId || 'A1',
+      selectedUnit: saved.selectedUnit || 'A1',
+      selectedBlock: saved.selectedBlock || 'A',
+      restRunning: false
+    };
   } catch {
     return defaults;
   }
@@ -123,34 +137,55 @@ function partnerProfile() {
   return (state.profiles && state.profiles[u]) || DEFAULT_PROFILES.annika;
 }
 
-function getExercises() {
-  return state.exercises && state.exercises.length ? state.exercises : EX;
+function getUnitMeta(unitId) {
+  return UNITS_META[unitId] || UNITS_META['A1'];
+}
+
+function getUnitExercises(unitId) {
+  const uId = unitId || state.activeUnitId || 'A1';
+  return (state.units && state.units[uId]) || DEFAULT_UNITS[uId] || [];
 }
 
 function currentExercise() {
-  return getExercises().find(e => e.id === state.detailId) || getExercises()[0];
+  const exercises = getUnitExercises(state.activeUnitId);
+  if (state.detailId) {
+    const found = exercises.find(e => e.id === state.detailId);
+    if (found) return found;
+    // Search in all units if not in current
+    for (const k of Object.keys(state.units || DEFAULT_UNITS)) {
+      const e = (state.units[k] || []).find(x => x.id === state.detailId);
+      if (e) return e;
+    }
+  }
+  return exercises[0] || DEFAULT_UNITS.A1[0];
+}
+
+function totalSetsForUnit(unitId) {
+  const exs = getUnitExercises(unitId);
+  return exs.reduce((sum, ex) => sum + (ex.sets ? ex.sets.length : 3), 0);
 }
 
 function totalSetsForCode(code) {
-  if (code === 'A1') return getExercises().reduce((sum, ex) => sum + ex.sets.length, 0);
-  const block = BLOCK_A.find(b => b.code === code);
-  return block ? countSetsInItems(block.items) : 0;
+  return totalSetsForUnit(code);
 }
 
-function sessionProgress() {
+function sessionProgress(unitId = state.activeUnitId || 'A1') {
   let done = 0, total = 0;
-  getExercises().forEach(ex => ex.sets.forEach((b, i) => {
+  const exercises = getUnitExercises(unitId);
+  exercises.forEach(ex => (ex.sets || []).forEach((b, i) => {
     total++;
-    if (getSet(ex.id, i, b).done) done++;
+    if (getSet(unitId, ex.id, i, b).done) done++;
   }));
   return { done, total };
 }
 
 /* ---------- set tracking ---------- */
 
-function getSet(exId, i, base) {
+function getSet(unitId, exId, i, base) {
   const prof = currentProfile();
-  const v = (prof.sets && prof.sets[exId + '-' + i]) || {};
+  const k = unitId + '_' + exId + '-' + i;
+  const legacyK = exId + '-' + i;
+  const v = (prof.sets && (prof.sets[k] || (unitId === 'A1' ? prof.sets[legacyK] : undefined))) || {};
   return {
     w: v.w !== undefined ? v.w : base.w,
     r: v.r !== undefined ? v.r : base.r,
@@ -159,9 +194,9 @@ function getSet(exId, i, base) {
   };
 }
 
-function setKey(exId, i, patch) {
+function setKey(unitId, exId, i, patch) {
   const u = state.activeUser || 'timmy';
-  const k = exId + '-' + i;
+  const k = unitId + '_' + exId + '-' + i;
   setState(s => {
     const prof = s.profiles[u] || DEFAULT_PROFILES[u];
     const cur = (prof.sets && prof.sets[k]) || {};
@@ -177,25 +212,26 @@ function setKey(exId, i, patch) {
   });
 }
 
-function onWUp(exId, i, v) {
-  const step = exId === 'carry' ? 4 : 2.5;
-  setKey(exId, i, { w: +(v.w + step).toFixed(1) });
+function onWUp(unitId, exId, i, v) {
+  const step = exId.includes('carry') || exId.includes('squat') ? 5 : 2.5;
+  setKey(unitId, exId, i, { w: +(v.w + step).toFixed(1) });
 }
-function onWDown(exId, i, v) {
-  const step = exId === 'carry' ? 4 : 2.5;
-  setKey(exId, i, { w: Math.max(0, +(v.w - step).toFixed(1)) });
+function onWDown(unitId, exId, i, v) {
+  const step = exId.includes('carry') || exId.includes('squat') ? 5 : 2.5;
+  setKey(unitId, exId, i, { w: Math.max(0, +(v.w - step).toFixed(1)) });
 }
-function onReps(exId, i, v) {
-  const max = exId === 'carry' ? 60 : 20;
-  const min = exId === 'carry' ? 20 : 4;
-  const step = exId === 'carry' ? 10 : 1;
-  setKey(exId, i, { r: v.r >= max ? min : v.r + step });
+function onReps(unitId, exId, i, v) {
+  const isCarry = exId.includes('carry');
+  const max = isCarry ? 60 : 20;
+  const min = isCarry ? 20 : 4;
+  const step = isCarry ? 10 : 1;
+  setKey(unitId, exId, i, { r: v.r >= max ? min : v.r + step });
 }
-function onRpe(exId, i, v) {
-  setKey(exId, i, { rpe: v.rpe >= 10 ? 6 : v.rpe + 1 });
+function onRpe(unitId, exId, i, v) {
+  setKey(unitId, exId, i, { rpe: v.rpe >= 10 ? 6 : v.rpe + 1 });
 }
-function onToggle(exId, i, v) {
-  setKey(exId, i, { done: !v.done });
+function onToggle(unitId, exId, i, v) {
+  setKey(unitId, exId, i, { done: !v.done });
   if (!v.done) setState({ rest: 90, restLeft: 90, restRunning: false });
 }
 
@@ -211,19 +247,10 @@ function back() {
 
 /* ---------- header ---------- */
 
-const HEAD_MAP = {
-  session: ['Freitag 11.9. · Block A', 'Einheit A1'],
-  plan: ['Trainingsplan', 'Plan'],
-  core: ['Täglich · 10 Minuten', 'Core & Mobility'],
-  verlauf: ['Seit KW 31', 'Fortschritt'],
-  profil: ['Konto', 'Profil & Einstellungen'],
-  'exercises-settings': ['Trainingsplan', 'Übungen anpassen']
-};
-
 function renderHeader() {
   const prof = currentProfile();
   if (state.screen === 'home') {
-    const { done } = sessionProgress();
+    const { done } = sessionProgress('A1');
     const gymCount = prof.gymCompletedThisWeek || 2;
     const avatarInner = prof.avatarImg
       ? `<img src="${prof.avatarImg}" alt="${prof.name}" class="avatar-photo">`
@@ -245,158 +272,124 @@ function renderHeader() {
         </div>
       </div>`;
   }
-  const [eyebrow, title] = state.screen === 'detail'
-    ? ['Übungsdetail', currentExercise().name]
-    : (HEAD_MAP[state.screen] || ['', '']);
+
+  let eyebrow = '';
+  let title = '';
+
+  if (state.screen === 'detail') {
+    const ex = currentExercise();
+    eyebrow = 'Übungsdetail';
+    title = ex.name;
+  } else if (state.screen === 'session') {
+    const meta = getUnitMeta(state.activeUnitId);
+    eyebrow = meta.block === 'A' ? 'Wasserphase · Block A' : 'Hauptblock · Block B';
+    title = meta.dayTitle;
+  } else if (state.screen === 'exercises-settings') {
+    const meta = getUnitMeta(state.selectedUnit);
+    eyebrow = 'Plan-Editor';
+    title = `Übungen · ${meta.code || meta.title}`;
+  } else {
+    const HEAD_MAP = {
+      plan: ['Trainingsplan', 'Plan'],
+      core: ['Täglich · 10 Minuten', 'Core & Mobility'],
+      verlauf: ['Seit KW 31', 'Fortschritt'],
+      profil: ['Konto', 'Profil & Einstellungen']
+    };
+    [eyebrow, title] = HEAD_MAP[state.screen] || ['', ''];
+  }
+
+  const showBack = ['session', 'detail', 'exercises-settings'].includes(state.screen);
+
   return `
-    <div class="header header-sub">
-      <button class="back-btn" data-action="back">‹</button>
-      <div class="header-titles">
-        <div class="eyebrow eyebrow-yellow eyebrow-sm">${eyebrow}</div>
-        <div class="page-title page-title-sm">${title}</div>
+    <div class="header ${showBack ? 'header-sub' : ''}">
+      <div class="header-sub-row">
+        ${showBack ? '<button class="back-btn" data-action="back">‹</button>' : ''}
+        <div style="flex:1;min-width:0">
+          <div class="eyebrow eyebrow-yellow">${eyebrow}</div>
+          <div class="page-title">${title}</div>
+        </div>
       </div>
     </div>`;
 }
 
-/* ---------- content ---------- */
-
-function renderContent() {
-  switch (state.screen) {
-    case 'session': return renderSession();
-    case 'detail': return renderDetail();
-    case 'plan': return renderPlan();
-    case 'core': return renderCore();
-    case 'verlauf': return renderVerlauf();
-    case 'profil': return renderProfil();
-    case 'exercises-settings': return renderExerciseSettings();
-    default: return renderHome();
-  }
-}
-
-function renderRecordRow(r) {
-  return `
-    <div class="record-row">
-      <div style="flex:1;min-width:0">
-        <div class="record-name">${r.name}</div>
-        <div class="record-when">${r.when}</div>
-      </div>
-      <div>
-        <div class="record-value">${r.value}</div>
-        <div class="record-delta">${r.delta}</div>
-      </div>
-    </div>`;
-}
-
-function getConsistencyData() {
-  const t = state.profiles.timmy || DEFAULT_PROFILES.timmy;
-  const a = state.profiles.annika || DEFAULT_PROFILES.annika;
-  const { done } = sessionProgress();
-
-  const tGym = Math.min(3, (t.gymCompletedThisWeek || 2) + (state.activeUser === 'timmy' && done > 0 ? 1 : 0));
-  const aGym = Math.min(3, (a.gymCompletedThisWeek || 2) + (state.activeUser === 'annika' && done > 0 ? 1 : 0));
-
-  const tScore = (tGym * 25) + (t.coreDone ? 15 : 0) + (t.mobDone && t.mobDone[1] ? 10 : 0);
-  const aScore = (aGym * 25) + (a.coreDone ? 15 : 0) + (a.mobDone && a.mobDone[1] ? 10 : 0);
-
-  let leaderBadge = '🔥 Gleichstand';
-  let leaderText = 'Beide mit starker Konsistenz voll auf Kurs zur nächsten Welle!';
-  if (tScore > aScore) {
-    leaderBadge = '👑 Timmy führt';
-    leaderText = `Timmy führt diese Woche mit ${tGym}/3 Einheiten & ${t.streak} Tagen Streak!`;
-  } else if (aScore > tScore) {
-    leaderBadge = '👑 Annika führt';
-    leaderText = `Annika führt diese Woche mit ${aGym}/3 Einheiten & ${a.streak} Tagen Streak!`;
-  }
-
-  return {
-    timmy: {
-      gym: tGym,
-      streak: t.streak + (t.coreDone ? 1 : 0),
-      coreDone: t.coreDone
-    },
-    annika: {
-      gym: aGym,
-      streak: a.streak + (a.coreDone ? 1 : 0),
-      coreDone: a.coreDone
-    },
-    leaderBadge,
-    leaderText
-  };
-}
+/* ---------- consistency widget ---------- */
 
 function renderConsistencyCard() {
-  const c = getConsistencyData();
-  const isTimmy = state.activeUser === 'timmy';
-  const isAnnika = state.activeUser === 'annika';
+  const current = currentProfile();
+  const partner = partnerProfile();
+
+  const currentGym = sessionProgress('A1').done > 0 ? Math.min(current.targetGym, current.gymCompletedThisWeek + 1) : current.gymCompletedThisWeek;
+  const currentCore = current.streak + (current.coreDone ? 1 : 0);
+  const currentMob = current.mobDone && current.mobDone[1] ? 100 : (current.mobDone && current.mobDone[0] ? 50 : 0);
+  const currentScore = Math.round((currentGym / current.targetGym) * 45 + (Math.min(currentCore, 7) / 7) * 35 + (currentMob / 100) * 20);
+
+  const partnerGym = partner.gymCompletedThisWeek;
+  const partnerCore = partner.streak + (partner.coreDone ? 1 : 0);
+  const partnerMob = partner.mobDone && partner.mobDone[1] ? 100 : (partner.mobDone && partner.mobDone[0] ? 50 : 0);
+  const partnerScore = Math.round((partnerGym / partner.targetGym) * 45 + (Math.min(partnerCore, 7) / 7) * 35 + (partnerMob / 100) * 20);
+
+  const isLeading = currentScore > partnerScore;
+  const isTied = currentScore === partnerScore;
+  const statusBadge = isTied ? '🤝 Gleichauf' : (isLeading ? `🔥 ${current.name} führt` : `⚡ ${partner.name} führt`);
+
+  const currentAvatar = current.avatarImg ? `<img src="${current.avatarImg}" alt="${current.name}" class="avatar-photo">` : current.initials;
+  const partnerAvatar = partner.avatarImg ? `<img src="${partner.avatarImg}" alt="${partner.name}" class="avatar-photo">` : partner.initials;
 
   return `
-    <div class="card card-consistency">
-      <div class="consistency-top">
+    <div class="card card-flush duel-widget">
+      <div class="duel-head">
         <div>
-          <div class="eyebrow eyebrow-yellow">Duell der Woche · Konsistenz</div>
-          <div class="consistency-title">Timmy vs. Annika</div>
+          <div class="eyebrow eyebrow-yellow">Konsistenz-Duell · KW 37</div>
+          <div class="duel-title">${current.name} &amp; ${partner.name}</div>
         </div>
-        <span class="consistency-pill">${c.leaderBadge}</span>
+        <div class="duel-badge">${statusBadge}</div>
       </div>
 
-      <div class="consistency-grid">
-        <!-- Timmy -->
-        <div class="athlete-card ${isTimmy ? 'is-me' : ''}">
-          <div class="athlete-header">
-            <div class="athlete-avatar" style="border: 1.5px solid #d72638; overflow:hidden; background:#fff">
-              <img src="images/timmy.jpg" alt="Timmy" class="avatar-photo">
+      <div class="duel-grid">
+        <div class="duel-user ${isLeading ? 'leading' : ''}">
+          <div class="duel-user-row">
+            <div class="duel-avatar" style="border: 2px solid ${current.color}; background:#fff; overflow:hidden; padding:0">
+              ${currentAvatar}
             </div>
             <div style="flex:1;min-width:0">
-              <div class="athlete-name">Timmy ${isTimmy ? '<span class="badge-you">DU</span>' : ''}</div>
-              <div class="athlete-streak">${c.timmy.streak} Tage Streak 🔥</div>
+              <div class="duel-name">${current.name} <span class="duel-you">(Du)</span></div>
+              <div class="duel-sub">Score: <strong>${currentScore}%</strong></div>
             </div>
           </div>
-          <div class="metric-row">
-            <div class="metric-label"><span>Gym</span><strong>${c.timmy.gym} / 3</strong></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${(c.timmy.gym / 3) * 100}%; background:#d72638"></div></div>
-          </div>
-          <div class="metric-subrow">
-            <span class="sub-label">Core heute:</span>
-            <span class="sub-val ${c.timmy.coreDone ? 'done' : ''}">${c.timmy.coreDone ? '✓ Erledigt' : 'Offen'}</span>
+          <div class="duel-stats">
+            <div class="duel-stat-row"><span>Gym-Tage</span><strong>${currentGym} / ${current.targetGym}</strong></div>
+            <div class="duel-stat-row"><span>Core-Streak</span><strong>${currentCore} Tage</strong></div>
+            <div class="duel-stat-row"><span>Mobility</span><strong>${currentMob}%</strong></div>
           </div>
         </div>
 
-        <div class="vs-badge">VS</div>
-
-        <!-- Annika -->
-        <div class="athlete-card ${isAnnika ? 'is-me' : ''}">
-          <div class="athlete-header">
-            <div class="athlete-avatar" style="border: 1.5px solid #f4a900; overflow:hidden; background:#fff">
-              <img src="images/annika.jpg" alt="Annika" class="avatar-photo">
+        <div class="duel-user ${!isLeading && !isTied ? 'leading' : ''}">
+          <div class="duel-user-row">
+            <div class="duel-avatar" style="border: 2px solid ${partner.color}; background:#fff; overflow:hidden; padding:0">
+              ${partnerAvatar}
             </div>
             <div style="flex:1;min-width:0">
-              <div class="athlete-name">Annika ${isAnnika ? '<span class="badge-you">DU</span>' : ''}</div>
-              <div class="athlete-streak">${c.annika.streak} Tage Streak 🔥</div>
+              <div class="duel-name">${partner.name}</div>
+              <div class="duel-sub">Score: <strong>${partnerScore}%</strong></div>
             </div>
           </div>
-          <div class="metric-row">
-            <div class="metric-label"><span>Gym</span><strong>${c.annika.gym} / 3</strong></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${(c.annika.gym / 3) * 100}%; background:#f4a900"></div></div>
-          </div>
-          <div class="metric-subrow">
-            <span class="sub-label">Core heute:</span>
-            <span class="sub-val ${c.annika.coreDone ? 'done' : ''}">${c.annika.coreDone ? '✓ Erledigt' : 'Offen'}</span>
+          <div class="duel-stats">
+            <div class="duel-stat-row"><span>Gym-Tage</span><strong>${partnerGym} / ${partner.targetGym}</strong></div>
+            <div class="duel-stat-row"><span>Core-Streak</span><strong>${partnerCore} Tage</strong></div>
+            <div class="duel-stat-row"><span>Mobility</span><strong>${partnerMob}%</strong></div>
           </div>
         </div>
-      </div>
-
-      <div class="consistency-footer">
-        <span class="surf-icon">🏄</span>
-        <span class="consistency-note">${c.leaderText}</span>
       </div>
     </div>`;
 }
+
+/* ---------- onboarding ---------- */
 
 function renderOnboarding() {
   return `
-    <div class="onboarding-wrap">
-      <div class="onboarding-badge">Surf Strength Tracker</div>
-      <h1 class="onboarding-title">WER TRAINIERT HIER?</h1>
+    <div class="onboarding-screen">
+      <div class="onboarding-logo">🏄‍♂️</div>
+      <div class="onboarding-title">Surf Gym Tracker</div>
       <p class="onboarding-sub">Wähle einmalig dein Profil aus. Dieses Handy speichert ab sofort deine Sätze, Gewichte und Konsistenz automatisch.</p>
 
       <div class="onboarding-cards">
@@ -429,26 +422,44 @@ function renderOnboarding() {
     </div>`;
 }
 
+/* ---------- home ---------- */
+
+function renderRecordRow(r) {
+  return `
+    <div class="record-row">
+      <div>
+        <div class="record-name">${r.name}</div>
+        <div class="record-when">${r.when}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="record-val">${r.value}</div>
+        <div class="record-delta">${r.delta}</div>
+      </div>
+    </div>`;
+}
+
 function renderHome() {
   const prof = currentProfile();
-  const totalSets = totalSetsForCode('A1');
-  const { done } = sessionProgress();
-  const startLabel = done > 0 ? 'Einheit fortsetzen' : 'Einheit starten';
+  const activeMeta = getUnitMeta(state.activeUnitId || 'A1');
+  const totalSets = totalSetsForUnit(activeMeta.id);
+  const { done } = sessionProgress(activeMeta.id);
+  const startLabel = done > 0 ? `Einheit fortsetzen (${done}/${totalSets} Sätze)` : `Einheit starten (${activeMeta.code || activeMeta.dayTitle})`;
   const records = prof.records || RECORDS;
+  const exercises = getUnitExercises(activeMeta.id);
 
   return `
     <div class="stack">
       <div class="card-emphasis">
         <div class="cmd-body">
           <div class="cmd-tags">
-            <span class="cmd-badge">Heute · A1</span>
-            <span class="cmd-meta">ca. 40 min · ${totalSets} Sätze</span>
+            <span class="cmd-badge">Heute · ${activeMeta.code || activeMeta.title}</span>
+            <span class="cmd-meta">${activeMeta.meta} · ${totalSets} Sätze</span>
           </div>
-          <div class="cmd-title">Zug &amp; Schulter&shy;gesundheit</div>
-          <p class="cmd-note">Gegengewicht zum Paddeln: Der Schultergürtel wird beim Surfen den ganzen Tag nach vorne gezogen — hier ziehst du ihn zurück.</p>
-          <div class="cmd-foot"><span>RPE-Deckel 7</span><span>6 Übungen</span></div>
+          <div class="cmd-title">${activeMeta.title}</div>
+          <p class="cmd-note">${activeMeta.why}</p>
+          <div class="cmd-foot"><span>${activeMeta.note || 'RPE 7'}</span><span>${exercises.length} Übungen</span></div>
         </div>
-        <button class="btn-block-red" data-action="start-session">${startLabel}</button>
+        <button class="btn-block-red" data-action="start-session" data-unit="${activeMeta.id}">${startLabel}</button>
       </div>
 
       ${renderConsistencyCard()}
@@ -460,7 +471,7 @@ function renderHome() {
         </div>
         <div class="week-grid">
           ${WEEK.map(d => `
-            <div class="day-cell ${d.state}">
+            <div class="day-cell ${d.state}" ${d.code ? `data-action="start-session" data-unit="${d.code}" style="cursor:pointer"` : ''}>
               <div class="dow">${d.dow}</div>
               <div class="num">${d.num}</div>
               <div class="dot" style="background:${d.state === 'done' ? 'var(--success)' : d.state === 'today' ? '#fff' : 'var(--sm-grey-400)'}"></div>
@@ -502,25 +513,27 @@ function renderHome() {
     </div>`;
 }
 
-function renderSetRow(ex, i, base) {
-  const v = getSet(ex.id, i, base);
-  const unit = ex.id === 'carry' ? ' m' : ' Wdh.';
+/* ---------- workout session ---------- */
+
+function renderSetRow(unitId, ex, i, base) {
+  const v = getSet(unitId, ex.id, i, base);
+  const unit = ex.id.includes('carry') ? ' m' : ' Wdh.';
   const weightLabel = String(v.w).replace('.', ',') + ' kg';
   return `
     <div class="set-row ${v.done ? 'done' : ''}">
       <div class="set-num">${i + 1}</div>
       <div class="weight-stepper">
-        <button data-action="set-wdown" data-ex="${ex.id}" data-idx="${i}">−</button>
+        <button data-action="set-wdown" data-unit="${unitId}" data-ex="${ex.id}" data-idx="${i}">−</button>
         <div class="weight-value">${weightLabel}</div>
-        <button data-action="set-wup" data-ex="${ex.id}" data-idx="${i}">+</button>
+        <button data-action="set-wup" data-unit="${unitId}" data-ex="${ex.id}" data-idx="${i}">+</button>
       </div>
-      <button class="reps-btn" data-action="set-reps" data-ex="${ex.id}" data-idx="${i}">${v.r}${unit}</button>
-      <button class="rpe-btn ${v.rpe >= 9 ? 'high' : ''}" data-action="set-rpe" data-ex="${ex.id}" data-idx="${i}">RPE ${v.rpe}</button>
-      <button class="check-btn ${v.done ? 'done' : ''}" data-action="set-toggle" data-ex="${ex.id}" data-idx="${i}">✓</button>
+      <button class="reps-btn" data-action="set-reps" data-unit="${unitId}" data-ex="${ex.id}" data-idx="${i}">${v.r}${unit}</button>
+      <button class="rpe-btn ${v.rpe >= 9 ? 'high' : ''}" data-action="set-rpe" data-unit="${unitId}" data-ex="${ex.id}" data-idx="${i}">RPE ${v.rpe}</button>
+      <button class="check-btn ${v.done ? 'done' : ''}" data-action="set-toggle" data-unit="${unitId}" data-ex="${ex.id}" data-idx="${i}">✓</button>
     </div>`;
 }
 
-function renderExerciseCard(ex) {
+function renderExerciseCard(unitId, ex) {
   return `
     <div class="ex-card">
       <div class="ex-head">
@@ -529,16 +542,19 @@ function renderExerciseCard(ex) {
           <div class="ex-name">${ex.name}</div>
         </div>
         ${ex.youtube ? `<a href="${ex.youtube}" target="_blank" rel="noopener noreferrer" class="yt-play-btn" title="YouTube Video öffnen">▶</a>` : ''}
-        <button class="info-btn" data-action="ex-info" data-ex="${ex.id}">i</button>
+        <button class="info-btn" data-action="ex-info" data-unit="${unitId}" data-ex="${ex.id}">i</button>
       </div>
-      <div class="ex-sets">${(ex.sets || []).map((base, i) => renderSetRow(ex, i, base)).join('')}</div>
+      <div class="ex-sets">${(ex.sets || []).map((base, i) => renderSetRow(unitId, ex, i, base)).join('')}</div>
     </div>`;
 }
 
 function renderSession() {
-  const exercises = getExercises();
-  const { done, total } = sessionProgress();
+  const unitId = state.activeUnitId || 'A1';
+  const meta = getUnitMeta(unitId);
+  const exercises = getUnitExercises(unitId);
+  const { done, total } = sessionProgress(unitId);
   const pct = total ? Math.round(done / total * 100) : 0;
+
   return `
     <div class="stack-12">
       <div class="card progress-card">
@@ -548,14 +564,23 @@ function renderSession() {
         </div>
         <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
       </div>
-      ${exercises.map(renderExerciseCard).join('')}
-      <div class="tip-box">Gewicht mit ±, Wiederholungen und RPE durch Antippen. Haken loggt den Satz und bietet den Pausentimer an. Mit ▶ öffnest du das YouTube-Tutorial.</div>
-      <button class="btn-block-outline" data-action="finish-session">Einheit abschließen</button>
+
+      ${exercises.map(ex => renderExerciseCard(unitId, ex)).join('')}
+
+      <div class="tip-box">
+        Gewicht mit ±, Wiederholungen und RPE durch Antippen. Haken loggt den Satz und bietet den Pausentimer an. Mit ▶ öffnest du das YouTube-Tutorial.
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button class="btn-block-outline" style="flex:1" data-action="finish-session">Einheit abschließen</button>
+        <button class="btn-secondary" data-action="open-unit-settings" data-unit="${unitId}">✏️ Übungen anpassen</button>
+      </div>
     </div>`;
 }
 
 function renderDetail() {
   const e = currentExercise();
+  const unitId = state.activeUnitId || 'A1';
   return `
     <div class="stack-12">
       <div class="card">
@@ -571,8 +596,8 @@ function renderDetail() {
         </a>
       ` : ''}
 
-      <button class="btn-secondary" style="width:100%" data-action="open-edit-exercise" data-ex="${e.id}">
-        ✏️ Diese Übung bearbeiten
+      <button class="btn-secondary" style="width:100%" data-action="open-edit-exercise" data-unit="${unitId}" data-ex="${e.id}">
+        ✏️ Diese Übung im Editor bearbeiten
       </button>
 
       <div class="card">
@@ -596,8 +621,10 @@ function renderDetail() {
     </div>`;
 }
 
+/* ---------- plan screens ---------- */
+
 function weekRowSub(d) {
-  return d.code ? `${totalSetsForCode(d.code)} Sätze · ${d.note}` : d.sub;
+  return d.code ? `${totalSetsForUnit(d.code)} Sätze · ${d.note}` : d.sub;
 }
 
 function renderPlanWeek() {
@@ -605,7 +632,7 @@ function renderPlanWeek() {
     <div class="stack-12">
       <div class="card card-flush">
         ${WEEK.map(d => `
-          <div class="week-row ${d.state === 'today' ? 'today' : ''}" ${d.state === 'today' ? 'data-action="start-session"' : ''}>
+          <div class="week-row ${d.state === 'today' ? 'today' : ''}" ${d.code ? `data-action="start-session" data-unit="${d.code}" style="cursor:pointer"` : ''}>
             <div class="dow-col"><div class="dow">${d.dow}</div><div class="num">${d.num}</div></div>
             <div style="flex:1;min-width:0">
               <div class="title ${d.state === 'open' ? 'open' : ''}">${d.title}</div>
@@ -629,15 +656,35 @@ function renderPlanBlockA() {
         <div class="card-title-inv" style="font-size:20px;margin-top:4px">Block A — Wasserphase</div>
         <p style="font-size:13px;line-height:1.5;margin-top:6px;color:rgba(255,255,255,.85)">Täglich surfen, Gym nur dreimal pro Woche und mit halbem Volumen. Ziel ist nicht Zuwachs, sondern belastbare Schultern, Hüften und ein stabiler unterer Rücken.</p>
       </div>
-      ${BLOCK_A.map(b => `
-        <div class="plan-card">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="plan-code">${b.code}</span>
-            <span class="plan-meta">${b.meta} · ${countSetsInItems(b.items)} Sätze</span>
-          </div>
-          <div class="plan-title">${b.title}</div>
-          <div class="item-list">${b.items.map(([n, sp]) => `<div class="item-row"><div>${n}</div><div class="spec">${sp}</div></div>`).join('')}</div>
-        </div>`).join('')}
+
+      ${BLOCK_A_META.map(b => {
+        const exs = getUnitExercises(b.unitId);
+        const totalSets = totalSetsForUnit(b.unitId);
+        return `
+          <div class="plan-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="plan-code">${b.code}</span>
+                <span class="plan-meta">${b.meta} · ${totalSets} Sätze</span>
+              </div>
+              <button class="plan-btn-edit" data-action="open-unit-settings" data-unit="${b.unitId}">✏️ Bearbeiten</button>
+            </div>
+            <div class="plan-title">${b.title}</div>
+            <div class="item-list">
+              ${exs.map(e => `
+                <div class="item-row">
+                  <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.name}</span>
+                    ${e.youtube ? '<span style="color:var(--sm-red);font-size:10px;font-weight:700">▶</span>' : ''}
+                  </div>
+                  <div class="spec">${e.target}</div>
+                </div>`).join('')}
+            </div>
+            <div class="plan-card-actions">
+              <button class="plan-btn-start" data-action="start-session" data-unit="${b.unitId}">▶ Einheit ${b.code} starten</button>
+            </div>
+          </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -649,15 +696,35 @@ function renderPlanBlockB() {
         <div class="card-title-inv" style="font-size:20px;margin-top:4px">Block B — Hauptblock</div>
         <p style="font-size:13px;line-height:1.5;margin-top:6px;color:rgba(255,255,255,.85)">Vier Einheiten pro Woche mit je 25 Arbeitssätzen. Die letzten Übungen laufen als Supersatz mit 45 Sekunden Pause — so bleibt die Einheit bei 60 bis 75 Minuten.</p>
       </div>
-      ${BLOCK_B.map(d => `
-        <div class="plan-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-            <span style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--fg-3)">${d.day}</span>
-            <span style="font-family:var(--font-mono);font-size:11px;color:var(--fg-3)">${countSetsInItems(d.items)} Sätze · ${d.meta}</span>
-          </div>
-          <div class="plan-title" style="margin-top:6px">${d.title}</div>
-          <div class="item-list" style="margin-top:10px">${d.items.map(([n, sp]) => `<div class="item-row"><div>${n}</div><div class="spec">${sp}</div></div>`).join('')}</div>
-        </div>`).join('')}
+
+      ${BLOCK_B_META.map(d => {
+        const exs = getUnitExercises(d.unitId);
+        const totalSets = totalSetsForUnit(d.unitId);
+        return `
+          <div class="plan-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <span style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--fg-3)">${d.day}</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--fg-3)">${totalSets} Sätze · ${d.meta}</span>
+                <button class="plan-btn-edit" data-action="open-unit-settings" data-unit="${d.unitId}">✏️</button>
+              </div>
+            </div>
+            <div class="plan-title" style="margin-top:6px">${d.title}</div>
+            <div class="item-list" style="margin-top:10px">
+              ${exs.map(e => `
+                <div class="item-row">
+                  <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.name}</span>
+                    ${e.youtube ? '<span style="color:var(--sm-red);font-size:10px;font-weight:700">▶</span>' : ''}
+                  </div>
+                  <div class="spec">${e.target}</div>
+                </div>`).join('')}
+            </div>
+            <div class="plan-card-actions">
+              <button class="plan-btn-start" data-action="start-session" data-unit="${d.unitId}">▶ ${d.day} starten</button>
+            </div>
+          </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -670,6 +737,8 @@ function renderPlan() {
       ${body}
     </div>`;
 }
+
+/* ---------- core & mobility ---------- */
 
 function renderCoreCycles() {
   const prof = currentProfile();
@@ -738,6 +807,8 @@ function renderCore() {
     </div>`;
 }
 
+/* ---------- verlauf ---------- */
+
 function renderVerlauf() {
   const prof = currentProfile();
   const bars = prof.bars || BARS;
@@ -772,8 +843,13 @@ function renderVerlauf() {
     </div>`;
 }
 
+/* ---------- exercise settings editor (all units in Block A & B) ---------- */
+
 function renderExerciseSettings() {
-  const exercises = getExercises();
+  const currentUnitId = state.selectedUnit || 'A1';
+  const unitMeta = getUnitMeta(currentUnitId);
+  const currentBlock = unitMeta.block || 'A';
+  const exercises = getUnitExercises(currentUnitId);
   const editing = state.editingExId ? exercises.find(e => e.id === state.editingExId) : null;
 
   if (editing) {
@@ -781,24 +857,33 @@ function renderExerciseSettings() {
       <div class="stack-12">
         <div class="card">
           <div class="card-head">
-            <div class="card-title">Übung bearbeiten</div>
+            <div>
+              <div class="eyebrow eyebrow-yellow">${unitMeta.dayTitle}</div>
+              <div class="card-title">Übung bearbeiten</div>
+            </div>
             <button class="link-btn" data-action="cancel-edit-exercise">‹ Zurück</button>
           </div>
 
           <div style="display:flex;flex-direction:column;gap:13px;margin-top:14px">
             <div>
               <label class="form-label">Übungsname</label>
-              <input type="text" id="ex-name" class="form-input" value="${editing.name}">
+              <input type="text" id="ex-name" class="form-input" value="${editing.name || ''}">
             </div>
 
             <div>
-              <label class="form-label">Zielvorgabe (Sätze × Wdh. · RPE)</label>
-              <input type="text" id="ex-target" class="form-input" value="${editing.target}">
+              <label class="form-label">Zielvorgabe (z.B. 4 × 6–8 · RPE 7)</label>
+              <input type="text" id="ex-target" class="form-input" value="${editing.target || ''}">
             </div>
 
             <div>
               <label class="form-label">YouTube Tutorial Link (Video URL)</label>
               <input type="url" id="ex-youtube" class="form-input" value="${editing.youtube || ''}" placeholder="https://www.youtube.com/watch?v=...">
+              ${editing.youtube ? `
+                <div style="margin-top:6px">
+                  <a href="${editing.youtube}" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;color:var(--sm-red);font-weight:700;text-decoration:none">
+                    ▶ Video jetzt testen ↗
+                  </a>
+                </div>` : ''}
             </div>
 
             <div>
@@ -817,52 +902,98 @@ function renderExerciseSettings() {
             </div>
 
             <div style="display:flex;gap:10px;margin-top:10px">
-              <button class="btn-block-red" style="flex:1" data-action="save-edit-exercise" data-ex="${editing.id}">Speichern</button>
+              <button class="btn-block-red" style="flex:1" data-action="save-edit-exercise" data-unit="${currentUnitId}" data-ex="${editing.id}">Speichern</button>
               <button class="btn-secondary" data-action="cancel-edit-exercise">Abbrechen</button>
             </div>
 
-            <button class="link-btn" style="color:var(--sm-red);margin-top:12px;text-align:center" data-action="delete-exercise" data-ex="${editing.id}">
-              🗑️ Übung aus Plan entfernen
+            <button class="link-btn" style="color:var(--sm-red);margin-top:12px;text-align:center" data-action="delete-exercise" data-unit="${currentUnitId}" data-ex="${editing.id}">
+              🗑️ Übung aus dieser Einheit entfernen
             </button>
           </div>
         </div>
       </div>`;
   }
 
+  // Unit navigation
+  const blockUnits = currentBlock === 'A'
+    ? [
+        { id: 'A1', label: 'A1: Zug & Schulter' },
+        { id: 'A2', label: 'A2: Beine & Rumpf' },
+        { id: 'A3', label: 'A3: Ganzkörper' }
+      ]
+    : [
+        { id: 'B_mo', label: 'Montag: Zug' },
+        { id: 'B_di', label: 'Dienstag: Beine' },
+        { id: 'B_do', label: 'Donnerstag: Druck' },
+        { id: 'B_sa', label: 'Samstag: Rotation' }
+      ];
+
   return `
     <div class="stack-12">
+      <!-- Block Switcher -->
+      <div class="segmented">
+        <button class="${currentBlock === 'A' ? 'active' : ''}" data-action="select-editor-block" data-block="A">Block A (Wasserphase)</button>
+        <button class="${currentBlock === 'B' ? 'active' : ''}" data-action="select-editor-block" data-block="B">Block B (Hauptblock)</button>
+      </div>
+
+      <!-- Unit Pills -->
+      <div class="unit-scroll-pills">
+        ${blockUnits.map(u => `
+          <button class="unit-pill ${currentUnitId === u.id ? 'active' : ''}" data-action="select-editor-unit" data-unit="${u.id}">
+            ${u.label}
+          </button>`).join('')}
+      </div>
+
+      <!-- Unit Card Head -->
       <div class="card">
         <div class="card-head">
           <div>
-            <div class="eyebrow eyebrow-yellow">Einheit A1 · Plan-Editor</div>
-            <div class="card-title">Übungen anpassen</div>
+            <div class="eyebrow eyebrow-yellow">${unitMeta.dayTitle} · ${totalSetsForUnit(currentUnitId)} Sätze</div>
+            <div class="card-title">${unitMeta.title}</div>
           </div>
-          <button class="pill-btn" data-action="reset-exercises">Standard</button>
+          <button class="pill-btn" data-action="reset-unit-exercises" data-unit="${currentUnitId}">Standard</button>
         </div>
-        <p style="font-size:12.5px;color:var(--fg-3);margin-top:6px;line-height:1.45">
-          Passe die Übungen, Vorgaben und YouTube-Tutorials an. Gilt automatisch für Timmy &amp; Annika gemeinsam.
+        <p style="font-size:12px;color:var(--fg-3);margin-top:6px;line-height:1.45">
+          ${unitMeta.why}
         </p>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="plan-btn-start" style="padding:7px 12px;font-size:11px" data-action="start-session" data-unit="${currentUnitId}">
+            ▶ Diese Einheit starten
+          </button>
+        </div>
       </div>
 
+      <!-- Exercise list -->
       <div class="card card-flush">
         ${exercises.map((ex, i) => `
           <div class="setting-row" style="padding:13px 14px">
             <div style="flex:1;min-width:0">
               <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--sm-navy)">${i + 1}. ${ex.name}</div>
               <div style="font-size:11.5px;color:var(--fg-3);margin-top:2px">${ex.target}</div>
-              ${ex.youtube ? `<div style="font-size:11px;color:var(--sm-red);margin-top:3px;font-weight:600">▶ YouTube-Video hinterlegt</div>` : '<div style="font-size:11px;color:#9ca3af;margin-top:3px">Kein Video hinterlegt</div>'}
+              ${ex.youtube
+                ? `<div style="font-size:11px;color:var(--sm-red);margin-top:4px;font-weight:600;display:flex;align-items:center;gap:6px">
+                    <span>▶ YouTube hinterlegt</span>
+                    <a href="${ex.youtube}" target="_blank" rel="noopener noreferrer" style="color:var(--sm-red);text-decoration:underline">Testen ↗</a>
+                   </div>`
+                : '<div style="font-size:11px;color:#9ca3af;margin-top:3px">Kein Video hinterlegt</div>'}
             </div>
-            <button class="btn-secondary" style="padding:7px 12px;font-size:11px" data-action="open-edit-exercise" data-ex="${ex.id}">
+            <button class="btn-secondary" style="padding:7px 12px;font-size:11px" data-action="open-edit-exercise" data-unit="${currentUnitId}" data-ex="${ex.id}">
               Bearbeiten
             </button>
           </div>`).join('')}
       </div>
 
-      <button class="btn-block-outline" data-action="add-new-exercise">
-        + Neue Übung hinzufügen
+      <button class="btn-block-outline" data-action="add-new-exercise" data-unit="${currentUnitId}">
+        + Neue Übung zu ${unitMeta.code || unitMeta.title} hinzufügen
+      </button>
+
+      <button class="link-btn" style="color:var(--fg-3);text-align:center;font-size:11px;padding:8px" data-action="reset-all-units">
+        ⚠️ Alle Einheiten in Block A &amp; B auf Standard zurücksetzen
       </button>
     </div>`;
 }
+
+/* ---------- profile screen ---------- */
 
 function renderProfil() {
   const prof = currentProfile();
@@ -885,12 +1016,12 @@ function renderProfil() {
       </div>
 
       <div class="card">
-        <div class="card-title-inv" style="color:var(--sm-navy)">Trainingsplan &amp; Übungen</div>
+        <div class="card-title-inv" style="color:var(--sm-navy)">Trainingsplan &amp; Übungen anpassen</div>
         <p style="font-size:12.5px;line-height:1.45;color:var(--fg-2);margin-top:6px">
-          Übungen austauschen, Vorgaben ändern und eigene YouTube-Tutorials für eure Einheiten hinterlegen.
+          Alle Einheiten in <strong>Block A</strong> (A1, A2, A3) und <strong>Block B</strong> (Montag, Dienstag, Donnerstag, Samstag) flexibel gestalten: Übungen austauschen, Vorgaben ändern und YouTube-Video-Links hinterlegen.
         </p>
         <button class="btn-block-red" style="margin-top:12px" data-action="nav" data-screen="exercises-settings">
-          🏋️ Übungen &amp; YouTube-Videos anpassen
+          🏋️ Alle Übungen &amp; YouTube-Videos anpassen
         </button>
       </div>
 
@@ -931,7 +1062,36 @@ function renderProfil() {
     </div>`;
 }
 
-/* ---------- rest bar + bottom nav ---------- */
+/* ---------- rest bar & timer ---------- */
+
+function restTick() {
+  if (!state.restRunning) return;
+  if (state.restLeft <= 1) {
+    clearInterval(restInterval);
+    restInterval = null;
+    setState({ restLeft: 0, restRunning: false });
+    return;
+  }
+  setState(s => ({ restLeft: s.restLeft - 1 }));
+}
+
+function restPrimary() {
+  if (state.restRunning) {
+    clearInterval(restInterval);
+    restInterval = null;
+    setState({ restRunning: false });
+  } else {
+    const left = state.restLeft === 0 ? 90 : state.restLeft;
+    if (restInterval) clearInterval(restInterval);
+    restInterval = setInterval(restTick, 1000);
+    setState({ restLeft: left, restRunning: true });
+  }
+}
+
+function restDismiss() {
+  if (restInterval) { clearInterval(restInterval); restInterval = null; }
+  setState({ rest: null, restLeft: 0, restRunning: false });
+}
 
 function renderRestBar() {
   if (state.rest === null || state.screen !== 'session') return '';
@@ -950,6 +1110,8 @@ function renderRestBar() {
     </div>`;
 }
 
+/* ---------- bottom nav ---------- */
+
 const NAV_ITEMS = [
   { screen: 'home', label: 'Heute', icon: '<path d="M3 10.5 12 3.5l9 7"></path><path d="M5.5 9.5V20.5h13V9.5"></path>' },
   { screen: 'plan', label: 'Plan', icon: '<rect x="3.5" y="4.5" width="17" height="16" rx="2.5"></rect><path d="M3.5 9.5h17M8.5 3v3M15.5 3v3"></path>' },
@@ -966,7 +1128,19 @@ function renderBottomNav() {
     </button>`).join('');
 }
 
-/* ---------- render + events ---------- */
+function renderContent() {
+  switch (state.screen) {
+    case 'home': return renderHome();
+    case 'session': return renderSession();
+    case 'detail': return renderDetail();
+    case 'plan': return renderPlan();
+    case 'core': return renderCore();
+    case 'verlauf': return renderVerlauf();
+    case 'profil': return renderProfil();
+    case 'exercises-settings': return renderExerciseSettings();
+    default: return renderHome();
+  }
+}
 
 function renderAll() {
   const headerEl = document.getElementById('header');
@@ -991,10 +1165,13 @@ function renderAll() {
   bottomnavEl.innerHTML = renderBottomNav();
 }
 
+/* ---------- event listeners ---------- */
+
 document.getElementById('app').addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
   if (!el) return;
   const action = el.dataset.action;
+  const unitId = el.dataset.unit;
   const exId = el.dataset.ex;
   const idx = el.dataset.idx !== undefined ? parseInt(el.dataset.idx, 10) : undefined;
 
@@ -1010,11 +1187,46 @@ document.getElementById('app').addEventListener('click', (e) => {
     }
     case 'nav': go(el.dataset.screen); break;
     case 'back': back(); break;
-    case 'start-session': setState({ screen: 'session' }); break;
+    case 'start-session': {
+      const targetUnit = unitId || 'A1';
+      setState({ screen: 'session', activeUnitId: targetUnit });
+      break;
+    }
     case 'finish-session': setState({ screen: 'home' }); break;
-    case 'ex-info': setState({ screen: 'detail', detailId: exId }); break;
+    case 'ex-info': {
+      const targetUnit = unitId || state.activeUnitId || 'A1';
+      setState({ screen: 'detail', activeUnitId: targetUnit, detailId: exId });
+      break;
+    }
+    case 'open-unit-settings': {
+      const targetUnit = unitId || 'A1';
+      const meta = getUnitMeta(targetUnit);
+      setState({
+        screen: 'exercises-settings',
+        selectedUnit: targetUnit,
+        selectedBlock: meta.block || 'A',
+        editingExId: null
+      });
+      break;
+    }
+    case 'select-editor-block': {
+      const blk = el.dataset.block;
+      const defaultUnit = blk === 'A' ? 'A1' : 'B_mo';
+      setState({ selectedBlock: blk, selectedUnit: defaultUnit, editingExId: null });
+      break;
+    }
+    case 'select-editor-unit': {
+      setState({ selectedUnit: el.dataset.unit, editingExId: null });
+      break;
+    }
     case 'open-edit-exercise': {
-      setState({ screen: 'exercises-settings', editingExId: el.dataset.ex });
+      const targetUnit = unitId || state.selectedUnit || 'A1';
+      setState({
+        screen: 'exercises-settings',
+        selectedUnit: targetUnit,
+        selectedBlock: getUnitMeta(targetUnit).block || 'A',
+        editingExId: exId
+      });
       break;
     }
     case 'cancel-edit-exercise': {
@@ -1022,7 +1234,8 @@ document.getElementById('app').addEventListener('click', (e) => {
       break;
     }
     case 'add-new-exercise': {
-      const newId = 'ex_' + Date.now();
+      const targetUnit = unitId || state.selectedUnit || 'A1';
+      const newId = targetUnit.toLowerCase() + '_ex_' + Date.now();
       const newEx = {
         id: newId,
         name: 'Neue Übung',
@@ -1031,17 +1244,25 @@ document.getElementById('app').addEventListener('click', (e) => {
         note: '',
         alt: '',
         why: '',
-        cues: ['Saubere Ausführung', 'Gleichmäßig atmen'],
+        cues: ['Saubere Form einhalten', 'Gleichmäßig atmen'],
         sets: [{ w: 10, r: 10 }, { w: 10, r: 10 }, { w: 10, r: 10 }]
       };
-      setState(s => ({
-        exercises: [...getExercises(), newEx],
-        editingExId: newId,
-        screen: 'exercises-settings'
-      }));
+      setState(s => {
+        const curExs = getUnitExercises(targetUnit);
+        return {
+          units: {
+            ...s.units,
+            [targetUnit]: [...curExs, newEx]
+          },
+          selectedUnit: targetUnit,
+          editingExId: newId,
+          screen: 'exercises-settings'
+        };
+      });
       break;
     }
     case 'save-edit-exercise': {
+      const targetUnit = unitId || state.selectedUnit || 'A1';
       const nameEl = document.getElementById('ex-name');
       const targetEl = document.getElementById('ex-target');
       const ytEl = document.getElementById('ex-youtube');
@@ -1057,27 +1278,53 @@ document.getElementById('app').addEventListener('click', (e) => {
       const why = whyEl ? whyEl.value.trim() : '';
 
       setState(s => {
-        const updated = getExercises().map(ex => {
+        const curExs = getUnitExercises(targetUnit);
+        const updated = curExs.map(ex => {
           if (ex.id !== exId) return ex;
           return { ...ex, name, target, youtube, alt, note, why };
         });
-        return { exercises: updated, editingExId: null };
+        return {
+          units: { ...s.units, [targetUnit]: updated },
+          editingExId: null
+        };
       });
       break;
     }
     case 'delete-exercise': {
-      if (confirm('Diese Übung wirklich aus Einheit A1 entfernen?')) {
+      const targetUnit = unitId || state.selectedUnit || 'A1';
+      const meta = getUnitMeta(targetUnit);
+      if (confirm(`Diese Übung wirklich aus ${meta.dayTitle} entfernen?`)) {
+        setState(s => {
+          const curExs = getUnitExercises(targetUnit);
+          return {
+            units: {
+              ...s.units,
+              [targetUnit]: curExs.filter(ex => ex.id !== exId)
+            },
+            editingExId: null
+          };
+        });
+      }
+      break;
+    }
+    case 'reset-unit-exercises': {
+      const targetUnit = unitId || state.selectedUnit || 'A1';
+      const meta = getUnitMeta(targetUnit);
+      if (confirm(`Übungen für ${meta.dayTitle} auf den Standard zurücksetzen?`)) {
         setState(s => ({
-          exercises: getExercises().filter(ex => ex.id !== exId),
+          units: {
+            ...s.units,
+            [targetUnit]: JSON.parse(JSON.stringify(DEFAULT_UNITS[targetUnit] || []))
+          },
           editingExId: null
         }));
       }
       break;
     }
-    case 'reset-exercises': {
-      if (confirm('Alle Übungen und YouTube-Links auf den Standard-Plan zurücksetzen?')) {
+    case 'reset-all-units': {
+      if (confirm('Wirklich alle Einheiten in Block A und Block B auf den Standard-Plan zurücksetzen?')) {
         setState({
-          exercises: JSON.parse(JSON.stringify(EX)),
+          units: JSON.parse(JSON.stringify(DEFAULT_UNITS)),
           editingExId: null
         });
       }
@@ -1088,15 +1335,17 @@ document.getElementById('app').addEventListener('click', (e) => {
     case 'set-reps':
     case 'set-rpe':
     case 'set-toggle': {
-      const ex = getExercises().find(x => x.id === exId);
+      const targetUnit = unitId || state.activeUnitId || 'A1';
+      const exercises = getUnitExercises(targetUnit);
+      const ex = exercises.find(x => x.id === exId);
       if (!ex) break;
-      const base = ex.sets[idx] || { w: 10, r: 10 };
-      const v = getSet(exId, idx, base);
-      if (action === 'set-wup') onWUp(exId, idx, v);
-      else if (action === 'set-wdown') onWDown(exId, idx, v);
-      else if (action === 'set-reps') onReps(exId, idx, v);
-      else if (action === 'set-rpe') onRpe(exId, idx, v);
-      else onToggle(exId, idx, v);
+      const base = (ex.sets && ex.sets[idx]) || { w: 10, r: 10 };
+      const v = getSet(targetUnit, exId, idx, base);
+      if (action === 'set-wup') onWUp(targetUnit, exId, idx, v);
+      else if (action === 'set-wdown') onWDown(targetUnit, exId, idx, v);
+      else if (action === 'set-reps') onReps(targetUnit, exId, idx, v);
+      else if (action === 'set-rpe') onRpe(targetUnit, exId, idx, v);
+      else onToggle(targetUnit, exId, idx, v);
       break;
     }
     case 'plan-tab': setState({ planTab: el.dataset.tab }); break;
