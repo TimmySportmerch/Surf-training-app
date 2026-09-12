@@ -1,6 +1,6 @@
 // Surf Gym Tracker — app logic & rendering (vanilla JS, no build step).
 
-const STORAGE_KEY = 'surfGymTracker.v2';
+const STORAGE_KEY = 'surfGymTracker.v3';
 
 const DEFAULT_PROFILES = {
   timmy: {
@@ -11,22 +11,14 @@ const DEFAULT_PROFILES = {
     color: '#d72638',
     level: 'Surf Strength · 3 Gym-Tage · Block A',
     targetGym: 3,
-    gymCompletedThisWeek: 2,
-    streak: 5,
+    gymCompletedThisWeek: 0,
+    streak: 0,
     coreDone: false,
-    mobDone: { 0: true, 1: false },
+    mobDone: { 0: false, 1: false },
     sets: {},
     settings: { 0: true, 1: true, 2: false, 3: true },
-    records: [
-      { name: 'Klimmzug / Latzug', when: 'Mo 8.9.', value: '+5 kg × 7', delta: '+1 Wdh.' },
-      { name: 'Langhantelrudern', when: 'Mo 8.9.', value: '55 kg × 9', delta: '+2,5 kg' },
-      { name: 'Goblet Squat', when: 'Mi 10.9.', value: '32 kg × 10', delta: '+2 Wdh.' },
-      { name: 'Farmer Carry', when: 'Mo 8.9.', value: '2 × 32 kg', delta: '+40 m' }
-    ],
-    bars: [
-      { label: 'KW31', total: 30 }, { label: 'KW32', total: 38 }, { label: 'KW33', total: 34 },
-      { label: 'KW34', total: 46 }, { label: 'KW35', total: 42 }, { label: 'KW36', total: 28 }
-    ]
+    records: [],
+    bars: []
   },
   annika: {
     id: 'annika',
@@ -36,22 +28,14 @@ const DEFAULT_PROFILES = {
     color: '#f4a900',
     level: 'Surf Strength · 3 Gym-Tage · Block A',
     targetGym: 3,
-    gymCompletedThisWeek: 2,
-    streak: 5,
+    gymCompletedThisWeek: 0,
+    streak: 0,
     coreDone: false,
-    mobDone: { 0: true, 1: false },
+    mobDone: { 0: false, 1: false },
     sets: {},
     settings: { 0: true, 1: true, 2: false, 3: true },
-    records: [
-      { name: 'Klimmzug / Latzug', when: 'Mo 8.9.', value: '45 kg × 8', delta: '+2,5 kg' },
-      { name: 'Kurzhantelrudern', when: 'Mo 8.9.', value: '18 kg × 10', delta: '+1 Wdh.' },
-      { name: 'Goblet Squat', when: 'Mi 10.9.', value: '24 kg × 10', delta: '+2 Wdh.' },
-      { name: 'Farmer Carry', when: 'Mo 8.9.', value: '2 × 20 kg', delta: '+40 m' }
-    ],
-    bars: [
-      { label: 'KW31', total: 30 }, { label: 'KW32', total: 38 }, { label: 'KW33', total: 34 },
-      { label: 'KW34', total: 46 }, { label: 'KW35', total: 42 }, { label: 'KW36', total: 28 }
-    ]
+    records: [],
+    bars: []
   }
 };
 
@@ -529,8 +513,8 @@ function renderHome() {
           </div>
           <div class="streak-box">
             <div class="streak-label">Mobility</div>
-            <div class="streak-value">6 Tage</div>
-            <div class="streak-sub">${prof.mobDone && prof.mobDone[1] ? 'komplett erledigt' : 'abends offen'}</div>
+            <div class="streak-value">${(prof.mobDone && (prof.mobDone[0] || prof.mobDone[1])) ? 1 : 0} Tage</div>
+            <div class="streak-sub">${prof.mobDone && prof.mobDone[1] ? 'komplett erledigt' : 'heute noch offen'}</div>
           </div>
         </div>
       </div>
@@ -540,7 +524,7 @@ function renderHome() {
           <div class="card-title">Letzte Bestwerte (${prof.name})</div>
           <button class="link-btn" data-action="nav" data-screen="verlauf">Verlauf ›</button>
         </div>
-        <div>${records.map(renderRecordRow).join('')}</div>
+        <div>${records.length ? records.map(renderRecordRow).join('') : '<p style="font-size:12px;color:var(--fg-3);padding:10px 0;margin:0">Noch keine Bestwerte erfasst. Sobald du trainierst, werden deine PRs hier angezeigt!</p>'}</div>
       </div>
     </div>`;
 }
@@ -839,26 +823,32 @@ function renderCore() {
 
 function renderVerlauf() {
   const prof = currentProfile();
-  const bars = prof.bars || BARS;
-  const records = prof.records || RECORDS;
-  const maxBar = Math.max(...bars.map(b => b.total));
+  const bars = prof.bars || [];
+  const records = prof.records || [];
+  const maxBar = bars.length ? Math.max(...bars.map(b => b.total), 1) : 1;
 
   return `
     <div class="stack-12">
       <div class="card">
         <div class="card-title">Volumen je Woche (${prof.name})</div>
-        <div class="bars">
-          ${bars.map(b => `
-            <div class="bar-col">
-              <div class="bar-track"><div class="bar-fill" style="height:${Math.round(b.total / maxBar * 100)}%; background:${prof.color}"></div></div>
-              <div class="bar-label">${b.label}</div>
-            </div>`).join('')}
-        </div>
-        <div style="margin-top:11px;font-size:11px;color:var(--fg-3)">Geloggte Arbeitssätze pro Kalenderwoche</div>
+        ${bars.length ? `
+          <div class="bars">
+            ${bars.map(b => `
+              <div class="bar-col">
+                <div class="bar-track"><div class="bar-fill" style="height:${Math.round(b.total / maxBar * 100)}%; background:${prof.color}"></div></div>
+                <div class="bar-label">${b.label}</div>
+              </div>`).join('')}
+          </div>
+          <div style="margin-top:11px;font-size:11px;color:var(--fg-3)">Geloggte Arbeitssätze pro Kalenderwoche</div>
+        ` : `
+          <p style="font-size:12.5px;color:var(--fg-3);margin-top:8px;line-height:1.45">Noch kein Trainingsvolumen geloggt. Sobald du deine erste Einheit abschließt, wird dein Wochenverlauf hier als Diagramm aufgebaut!</p>
+        `}
       </div>
       <div class="card">
         <div class="card-title">Bestwerte &amp; Progression (${prof.name})</div>
-        <div>${records.map(renderRecordRow).join('')}</div>
+        <div>
+          ${records.length ? records.map(renderRecordRow).join('') : '<p style="font-size:12.5px;color:var(--fg-3);padding:8px 0;margin:0">Noch keine Bestwerte erfasst. Sobald du Übungen abschließt, erscheinen hier deine persönlichen Rekorde!</p>'}
+        </div>
       </div>
       <div class="card-navy">
         <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sm-yellow)">Doppelprogression</div>
