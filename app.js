@@ -1269,7 +1269,7 @@ function renderProfil() {
       </div>
 
       <div style="text-align:center;padding:10px 0 4px;color:var(--fg-3);font-size:11px;font-weight:600">
-        Surf Gym Tracker · v3.3.0 · Supabase Live-Sync aktiv
+        Surf Gym Tracker · v3.4.0 · Supabase Live-Sync aktiv
       </div>
     </div>`;
 }
