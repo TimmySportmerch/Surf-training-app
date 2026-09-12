@@ -347,3 +347,313 @@ a, a:hover { color: var(--sm-red); }
     max-height: 100dvh;
   }
 }
+
+/* ---------- onboarding / profile selector ---------- */
+.onboarding-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 36px 20px 24px;
+  min-height: 75vh;
+  text-align: center;
+}
+.onboarding-badge {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--sm-red);
+  background: #fde8eb;
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+.onboarding-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  font-size: 27px;
+  line-height: 1.1;
+  color: var(--sm-navy);
+  margin: 0 0 10px;
+}
+.onboarding-sub {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--fg-2);
+  margin: 0 0 28px;
+  max-width: 320px;
+}
+.onboarding-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+.onboarding-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.onboarding-btn:active {
+  transform: scale(0.98);
+}
+.onboarding-avatar {
+  flex: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 999px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 18px;
+}
+.onboarding-info {
+  flex: 1;
+  min-width: 0;
+}
+.onboarding-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  font-size: 20px;
+  color: var(--sm-navy);
+}
+.onboarding-detail {
+  font-size: 11.5px;
+  color: var(--fg-3);
+  margin-top: 3px;
+}
+.onboarding-arrow {
+  font-size: 24px;
+  color: var(--sm-grey-400);
+  font-weight: 300;
+}
+.onboarding-foot {
+  margin-top: 32px;
+  font-size: 12px;
+  color: var(--fg-3);
+  line-height: 1.4;
+  padding: 0 10px;
+}
+
+/* ---------- consistency face-off card ---------- */
+.card-consistency {
+  background: #fff;
+  border: 2px solid var(--sm-navy);
+  border-radius: 16px;
+  padding: 15px;
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+  position: relative;
+}
+.consistency-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.consistency-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  font-size: 19px;
+  color: var(--sm-navy);
+  margin-top: 3px;
+}
+.consistency-pill {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: var(--sm-navy-100);
+  color: var(--sm-navy-800);
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--sm-navy-200);
+}
+.consistency-grid {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  position: relative;
+}
+.athlete-card {
+  flex: 1;
+  min-width: 0;
+  background: #f8fafc;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s ease;
+}
+.athlete-card.is-me {
+  background: #f0f4f9;
+  border-color: var(--sm-navy);
+  box-shadow: 0 2px 6px rgba(30, 58, 95, 0.08);
+}
+.athlete-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.athlete-avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 12px;
+}
+.athlete-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  font-size: 13.5px;
+  color: var(--sm-navy);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.badge-you {
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--sm-red);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.athlete-streak {
+  font-size: 10.5px;
+  color: var(--fg-3);
+  font-weight: 500;
+}
+.metric-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.metric-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--fg-2);
+}
+.metric-label strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  color: var(--sm-navy);
+}
+.progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.metric-subrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10.5px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+.sub-label {
+  color: var(--fg-3);
+}
+.sub-val {
+  font-weight: 600;
+  color: #9ca3af;
+}
+.sub-val.done {
+  color: var(--success);
+}
+.vs-badge {
+  align-self: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--sm-navy);
+  color: var(--sm-yellow);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.consistency-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.surf-icon {
+  font-size: 16px;
+}
+.consistency-note {
+  font-size: 11.5px;
+  color: var(--fg-2);
+  line-height: 1.35;
+  font-weight: 500;
+}
+.btn-secondary {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--sm-navy);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  font-size: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  background: #f9fafb;
+}
+

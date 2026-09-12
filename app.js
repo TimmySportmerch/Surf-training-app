@@ -1,13 +1,69 @@
 // Surf Gym Tracker — app logic & rendering (vanilla JS, no build step).
 
-const STORAGE_KEY = 'surfGymTracker.v1';
+const STORAGE_KEY = 'surfGymTracker.v2';
+
+const DEFAULT_PROFILES = {
+  timmy: {
+    id: 'timmy',
+    name: 'Timmy',
+    initials: 'TI',
+    color: '#d72638',
+    level: 'Fortgeschritten · RPE-Deckel 8 · 3 Gym-Tage',
+    targetGym: 3,
+    gymCompletedThisWeek: 2,
+    streak: 5,
+    coreDone: false,
+    mobDone: { 0: true, 1: false },
+    sets: {},
+    settings: { 0: true, 1: true, 2: false, 3: true },
+    records: [
+      { name: 'Klimmzug beschwert', when: 'Mo 8.9.', value: '+5 kg × 7', delta: '+1 Wdh.' },
+      { name: 'Langhantelrudern', when: 'Mo 8.9.', value: '55 kg × 9', delta: '+2,5 kg' },
+      { name: 'Goblet Squat', when: 'Mi 10.9.', value: '32 kg × 10', delta: '+2 Wdh.' },
+      { name: 'Farmer Carry', when: 'Mo 8.9.', value: '2 × 32 kg', delta: '+40 m' }
+    ],
+    bars: [
+      { label: 'KW31', total: 30 }, { label: 'KW32', total: 38 }, { label: 'KW33', total: 34 },
+      { label: 'KW34', total: 46 }, { label: 'KW35', total: 42 }, { label: 'KW36', total: 28 }
+    ]
+  },
+  annika: {
+    id: 'annika',
+    name: 'Annika',
+    initials: 'AN',
+    color: '#f4a900',
+    level: 'Intermediate · RPE-Deckel 7 · 3 Gym-Tage',
+    targetGym: 3,
+    gymCompletedThisWeek: 3,
+    streak: 6,
+    coreDone: true,
+    mobDone: { 0: true, 1: true },
+    sets: {},
+    settings: { 0: true, 1: true, 2: true, 3: true },
+    records: [
+      { name: 'Latzug am Kabel', when: 'Di 9.9.', value: '45 kg × 8', delta: '+2,5 kg' },
+      { name: 'Kurzhantelrudern', when: 'Di 9.9.', value: '18 kg × 10', delta: '+1 Wdh.' },
+      { name: 'Goblet Squat', when: 'Do 11.9.', value: '24 kg × 10', delta: '+2 Wdh.' },
+      { name: 'Farmer Carry', when: 'Di 9.9.', value: '2 × 20 kg', delta: '+20 m' }
+    ],
+    bars: [
+      { label: 'KW31', total: 24 }, { label: 'KW32', total: 32 }, { label: 'KW33', total: 36 },
+      { label: 'KW34', total: 40 }, { label: 'KW35', total: 38 }, { label: 'KW36', total: 34 }
+    ]
+  }
+};
 
 function defaultState() {
   return {
-    screen: 'home', planTab: 'w', coreTab: 'core', detailId: 'pull',
-    sets: {}, coreDone: false, mobDone: { 0: true, 1: false },
-    settings: { 0: true, 1: true, 2: false, 3: true },
-    rest: null, restLeft: 0, restRunning: false
+    activeUser: null, // null triggers the initial profile picker
+    screen: 'home',
+    planTab: 'w',
+    coreTab: 'core',
+    detailId: 'pull',
+    profiles: JSON.parse(JSON.stringify(DEFAULT_PROFILES)),
+    rest: null,
+    restLeft: 0,
+    restRunning: false
   };
 }
 
@@ -15,10 +71,24 @@ function loadState() {
   const defaults = defaultState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaults;
+    if (!raw) {
+      // Check legacy v1 storage
+      const v1Raw = localStorage.getItem('surfGymTracker.v1');
+      if (v1Raw) {
+        const v1 = JSON.parse(v1Raw);
+        defaults.profiles.timmy.sets = v1.sets || {};
+        defaults.profiles.timmy.coreDone = !!v1.coreDone;
+        defaults.profiles.timmy.mobDone = v1.mobDone || defaults.profiles.timmy.mobDone;
+        defaults.profiles.timmy.settings = v1.settings || defaults.profiles.timmy.settings;
+      }
+      return defaults;
+    }
     const saved = JSON.parse(raw);
-    // never resume a running timer across a reload — user restarts it explicitly
-    return { ...defaults, ...saved, restRunning: false };
+    const profiles = {
+      timmy: { ...defaults.profiles.timmy, ...(saved.profiles && saved.profiles.timmy) },
+      annika: { ...defaults.profiles.annika, ...(saved.profiles && saved.profiles.annika) }
+    };
+    return { ...defaults, ...saved, profiles, restRunning: false };
   } catch {
     return defaults;
   }
@@ -38,6 +108,16 @@ function setState(patch) {
   renderAll();
 }
 
+function currentProfile() {
+  const u = state.activeUser || 'timmy';
+  return (state.profiles && state.profiles[u]) || DEFAULT_PROFILES.timmy;
+}
+
+function partnerProfile() {
+  const u = state.activeUser === 'annika' ? 'timmy' : 'annika';
+  return (state.profiles && state.profiles[u]) || DEFAULT_PROFILES.annika;
+}
+
 function currentExercise() {
   return EX.find(e => e.id === state.detailId) || EX[0];
 }
@@ -45,7 +125,8 @@ function currentExercise() {
 /* ---------- set tracking ---------- */
 
 function getSet(exId, i, base) {
-  const v = state.sets[exId + '-' + i] || {};
+  const prof = currentProfile();
+  const v = (prof.sets && prof.sets[exId + '-' + i]) || {};
   return {
     w: v.w !== undefined ? v.w : base.w,
     r: v.r !== undefined ? v.r : base.r,
@@ -55,10 +136,20 @@ function getSet(exId, i, base) {
 }
 
 function setKey(exId, i, patch) {
+  const u = state.activeUser || 'timmy';
   const k = exId + '-' + i;
   setState(s => {
-    const cur = s.sets[k] || {};
-    return { sets: { ...s.sets, [k]: { ...cur, ...patch } } };
+    const prof = s.profiles[u] || DEFAULT_PROFILES[u];
+    const cur = (prof.sets && prof.sets[k]) || {};
+    return {
+      profiles: {
+        ...s.profiles,
+        [u]: {
+          ...prof,
+          sets: { ...prof.sets, [k]: { ...cur, ...patch } }
+        }
+      }
+    };
   });
 }
 
@@ -140,7 +231,10 @@ const HEAD_MAP = {
 };
 
 function renderHeader() {
+  const prof = currentProfile();
   if (state.screen === 'home') {
+    const { done } = sessionProgress();
+    const gymCount = prof.gymCompletedThisWeek || 2;
     return `
       <div class="header">
         <div class="header-top">
@@ -148,11 +242,13 @@ function renderHeader() {
             <div class="eyebrow eyebrow-yellow">Block A · Wasserphase · Woche 1</div>
             <div class="page-title">Freitag 11.9.</div>
           </div>
-          <button class="avatar-btn" data-action="nav" data-screen="profil">JS</button>
+          <button class="avatar-btn" data-action="nav" data-screen="profil" style="background:${prof.color}; border: 2px solid rgba(255,255,255,.5)">
+            ${prof.initials}
+          </button>
         </div>
         <div class="header-stats">
           <div class="stat-box"><div class="stat-label">Bis Block B</div><div class="stat-value">17 Tage</div></div>
-          <div class="stat-box"><div class="stat-label">Gym diese Woche</div><div class="stat-value">1 / 3</div></div>
+          <div class="stat-box"><div class="stat-label">Gym (${prof.name})</div><div class="stat-value">${done > 0 ? Math.min(3, gymCount + 1) : gymCount} / 3</div></div>
         </div>
       </div>`;
   }
@@ -197,10 +293,147 @@ function renderRecordRow(r) {
     </div>`;
 }
 
+function getConsistencyData() {
+  const t = state.profiles.timmy || DEFAULT_PROFILES.timmy;
+  const a = state.profiles.annika || DEFAULT_PROFILES.annika;
+  const { done } = sessionProgress();
+
+  const tGym = Math.min(3, (t.gymCompletedThisWeek || 2) + (state.activeUser === 'timmy' && done > 0 ? 1 : 0));
+  const aGym = Math.min(3, (a.gymCompletedThisWeek || 3) + (state.activeUser === 'annika' && done > 0 ? 1 : 0));
+
+  const tScore = (tGym * 25) + (t.coreDone ? 15 : 0) + (t.mobDone && t.mobDone[1] ? 10 : 0);
+  const aScore = (aGym * 25) + (a.coreDone ? 15 : 0) + (a.mobDone && a.mobDone[1] ? 10 : 0);
+
+  let leaderBadge = '🔥 Gleichstand';
+  let leaderText = 'Beide mit starker Konsistenz voll auf Kurs zur nächsten Welle!';
+  if (tScore > aScore) {
+    leaderBadge = '👑 Timmy führt';
+    leaderText = `Timmy führt diese Woche mit ${tGym}/3 Einheiten & ${t.streak} Tagen Streak!`;
+  } else if (aScore > tScore) {
+    leaderBadge = '👑 Annika führt';
+    leaderText = `Annika führt diese Woche mit ${aGym}/3 Einheiten & ${a.streak} Tagen Streak!`;
+  }
+
+  return {
+    timmy: {
+      gym: tGym,
+      streak: t.streak + (t.coreDone ? 1 : 0),
+      coreDone: t.coreDone
+    },
+    annika: {
+      gym: aGym,
+      streak: a.streak + (a.coreDone ? 1 : 0),
+      coreDone: a.coreDone
+    },
+    leaderBadge,
+    leaderText
+  };
+}
+
+function renderConsistencyCard() {
+  const c = getConsistencyData();
+  const isTimmy = state.activeUser === 'timmy';
+  const isAnnika = state.activeUser === 'annika';
+
+  return `
+    <div class="card card-consistency">
+      <div class="consistency-top">
+        <div>
+          <div class="eyebrow eyebrow-yellow">Duell der Woche · Konsistenz</div>
+          <div class="consistency-title">Timmy vs. Annika</div>
+        </div>
+        <span class="consistency-pill">${c.leaderBadge}</span>
+      </div>
+
+      <div class="consistency-grid">
+        <!-- Timmy -->
+        <div class="athlete-card ${isTimmy ? 'is-me' : ''}">
+          <div class="athlete-header">
+            <div class="athlete-avatar" style="background:#d72638">TI</div>
+            <div style="flex:1;min-width:0">
+              <div class="athlete-name">Timmy ${isTimmy ? '<span class="badge-you">DU</span>' : ''}</div>
+              <div class="athlete-streak">${c.timmy.streak} Tage Streak 🔥</div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label"><span>Gym</span><strong>${c.timmy.gym} / 3</strong></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${(c.timmy.gym / 3) * 100}%; background:#d72638"></div></div>
+          </div>
+          <div class="metric-subrow">
+            <span class="sub-label">Core heute:</span>
+            <span class="sub-val ${c.timmy.coreDone ? 'done' : ''}">${c.timmy.coreDone ? '✓ Erledigt' : 'Offen'}</span>
+          </div>
+        </div>
+
+        <div class="vs-badge">VS</div>
+
+        <!-- Annika -->
+        <div class="athlete-card ${isAnnika ? 'is-me' : ''}">
+          <div class="athlete-header">
+            <div class="athlete-avatar" style="background:#f4a900">AN</div>
+            <div style="flex:1;min-width:0">
+              <div class="athlete-name">Annika ${isAnnika ? '<span class="badge-you">DU</span>' : ''}</div>
+              <div class="athlete-streak">${c.annika.streak} Tage Streak 🔥</div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label"><span>Gym</span><strong>${c.annika.gym} / 3</strong></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${(c.annika.gym / 3) * 100}%; background:#f4a900"></div></div>
+          </div>
+          <div class="metric-subrow">
+            <span class="sub-label">Core heute:</span>
+            <span class="sub-val ${c.annika.coreDone ? 'done' : ''}">${c.annika.coreDone ? '✓ Erledigt' : 'Offen'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="consistency-footer">
+        <span class="surf-icon">🏄</span>
+        <span class="consistency-note">${c.leaderText}</span>
+      </div>
+    </div>`;
+}
+
+function renderOnboarding() {
+  return `
+    <div class="onboarding-wrap">
+      <div class="onboarding-badge">Surf Strength Tracker</div>
+      <h1 class="onboarding-title">WER TRAINIERT HIER?</h1>
+      <p class="onboarding-sub">Wähle einmalig dein Profil aus. Dieses Handy speichert ab sofort deine Sätze, Gewichte und Konsistenz automatisch.</p>
+
+      <div class="onboarding-cards">
+        <button class="onboarding-btn" data-action="select-profile" data-user="timmy">
+          <div class="onboarding-avatar" style="background:#d72638">TI</div>
+          <div class="onboarding-info">
+            <div class="onboarding-name">Timmy</div>
+            <div class="onboarding-detail">Fortgeschritten · RPE-Deckel 8 · 3 Gym-Tage</div>
+          </div>
+          <span class="onboarding-arrow">›</span>
+        </button>
+
+        <button class="onboarding-btn" data-action="select-profile" data-user="annika">
+          <div class="onboarding-avatar" style="background:#f4a900">AN</div>
+          <div class="onboarding-info">
+            <div class="onboarding-name">Annika</div>
+            <div class="onboarding-detail">Intermediate · RPE-Deckel 7 · 3 Gym-Tage</div>
+          </div>
+          <span class="onboarding-arrow">›</span>
+        </button>
+      </div>
+
+      <div class="onboarding-foot">
+        <span>💡 Beide Profile treten auf dem Dashboard im wöchentlichen Konsistenz-Duell gegeneinander an!</span>
+      </div>
+    </div>`;
+}
+
 function renderHome() {
+  const prof = currentProfile();
   const totalSets = totalSetsForCode('A1');
   const { done } = sessionProgress();
   const startLabel = done > 0 ? 'Einheit fortsetzen' : 'Einheit starten';
+  const records = prof.records || RECORDS;
+
   return `
     <div class="stack">
       <div class="card-emphasis">
@@ -215,6 +448,8 @@ function renderHome() {
         </div>
         <button class="btn-block-red" data-action="start-session">${startLabel}</button>
       </div>
+
+      ${renderConsistencyCard()}
 
       <div class="card">
         <div class="card-head">
@@ -238,29 +473,29 @@ function renderHome() {
 
       <div class="card-yellow">
         <div class="card-head">
-          <div class="card-title-inv">Täglich-Streak</div>
+          <div class="card-title-inv">Täglich-Streak (${prof.name})</div>
           <button class="pill-btn" data-action="nav" data-screen="core">Öffnen</button>
         </div>
         <div class="streak-row">
           <div class="streak-box">
             <div class="streak-label">Core · Zyklus A</div>
-            <div class="streak-value">${state.coreDone ? 5 : 4} Tage</div>
-            <div class="streak-sub">${state.coreDone ? 'heute erledigt' : 'heute noch offen'}</div>
+            <div class="streak-value">${prof.streak + (prof.coreDone ? 1 : 0)} Tage</div>
+            <div class="streak-sub">${prof.coreDone ? 'heute erledigt' : 'heute noch offen'}</div>
           </div>
           <div class="streak-box">
             <div class="streak-label">Mobility</div>
             <div class="streak-value">6 Tage</div>
-            <div class="streak-sub">${state.mobDone[1] ? 'komplett erledigt' : 'abends offen'}</div>
+            <div class="streak-sub">${prof.mobDone && prof.mobDone[1] ? 'komplett erledigt' : 'abends offen'}</div>
           </div>
         </div>
       </div>
 
       <div class="card">
         <div class="card-head">
-          <div class="card-title">Letzte Bestwerte</div>
+          <div class="card-title">Letzte Bestwerte (${prof.name})</div>
           <button class="link-btn" data-action="nav" data-screen="verlauf">Verlauf ›</button>
         </div>
-        <div>${RECORDS.map(renderRecordRow).join('')}</div>
+        <div>${records.map(renderRecordRow).join('')}</div>
       </div>
     </div>`;
 }
@@ -420,11 +655,12 @@ function renderPlan() {
 }
 
 function renderCoreCycles() {
+  const prof = currentProfile();
   return `
     <div class="stack-12">
       ${CYCLES.map(c => {
         const isToday = c.today;
-        const pillLabel = isToday ? (state.coreDone ? 'erledigt' : 'offen') : 'geplant';
+        const pillLabel = isToday ? (prof.coreDone ? 'erledigt' : 'offen') : 'geplant';
         return `
           <div class="cyc-card ${isToday ? 'today' : ''}">
             <div class="cyc-head">
@@ -432,10 +668,10 @@ function renderCoreCycles() {
                 <div class="cyc-eyebrow">${c.eyebrow}</div>
                 <div class="cyc-title">${c.title}</div>
               </div>
-              <div class="pill ${isToday && state.coreDone ? 'on' : ''}">${pillLabel}</div>
+              <div class="pill ${isToday && prof.coreDone ? 'on' : ''}">${pillLabel}</div>
             </div>
             <div class="cyc-items">${c.items.map(([n, sp]) => `<div class="cyc-item"><span>${n}</span><span class="spec">${sp}</span></div>`).join('')}</div>
-            ${isToday ? `<button class="btn-cyc ${state.coreDone ? 'on' : ''}" data-action="core-start">${state.coreDone ? 'Als offen markieren' : 'Zyklus A starten'}</button>` : ''}
+            ${isToday ? `<button class="btn-cyc ${prof.coreDone ? 'on' : ''}" data-action="core-start">${prof.coreDone ? 'Als offen markieren' : 'Zyklus A starten'}</button>` : ''}
           </div>`;
       }).join('')}
       <div class="card">
@@ -446,10 +682,11 @@ function renderCoreCycles() {
 }
 
 function renderMobility() {
+  const prof = currentProfile();
   return `
     <div class="stack-12">
       ${MOB.map((m, i) => {
-        const done = !!state.mobDone[i];
+        const done = !!(prof.mobDone && prof.mobDone[i]);
         return `
           <div class="mob-card ${done ? 'done' : ''}">
             <div class="cyc-head">
@@ -485,23 +722,27 @@ function renderCore() {
 }
 
 function renderVerlauf() {
-  const maxBar = Math.max(...BARS.map(b => b.total));
+  const prof = currentProfile();
+  const bars = prof.bars || BARS;
+  const records = prof.records || RECORDS;
+  const maxBar = Math.max(...bars.map(b => b.total));
+
   return `
     <div class="stack-12">
       <div class="card">
-        <div class="card-title">Volumen je Woche</div>
+        <div class="card-title">Volumen je Woche (${prof.name})</div>
         <div class="bars">
-          ${BARS.map(b => `
+          ${bars.map(b => `
             <div class="bar-col">
-              <div class="bar-track"><div class="bar-fill" style="height:${Math.round(b.total / maxBar * 100)}%"></div></div>
+              <div class="bar-track"><div class="bar-fill" style="height:${Math.round(b.total / maxBar * 100)}%; background:${prof.color}"></div></div>
               <div class="bar-label">${b.label}</div>
             </div>`).join('')}
         </div>
         <div style="margin-top:11px;font-size:11px;color:var(--fg-3)">Geloggte Arbeitssätze pro Kalenderwoche</div>
       </div>
       <div class="card">
-        <div class="card-title">Bestwerte &amp; Progression</div>
-        <div>${RECORDS.map(renderRecordRow).join('')}</div>
+        <div class="card-title">Bestwerte &amp; Progression (${prof.name})</div>
+        <div>${records.map(renderRecordRow).join('')}</div>
       </div>
       <div class="card-navy">
         <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sm-yellow)">Doppelprogression</div>
@@ -515,18 +756,33 @@ function renderVerlauf() {
 }
 
 function renderProfil() {
+  const prof = currentProfile();
+  const otherUser = state.activeUser === 'timmy' ? 'annika' : 'timmy';
+  const otherName = otherUser === 'timmy' ? 'Timmy' : 'Annika';
+
   return `
     <div class="stack-12">
       <div class="card-navy profile-head">
-        <div class="profile-avatar">JS</div>
+        <div class="profile-avatar" style="background:${prof.color}; color:#fff">${prof.initials}</div>
         <div style="flex:1;min-width:0">
-          <div class="profile-name">Jan S.</div>
-          <div class="profile-sub">Fortgeschritten · RPE-Deckel 8 · 3 Gym-Tage</div>
+          <div class="profile-name">${prof.name}</div>
+          <div class="profile-sub">${prof.level}</div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="card-title-inv" style="color:var(--sm-navy)">Handy-Zuweisung</div>
+        <p style="font-size:12.5px;line-height:1.45;color:var(--fg-2);margin-top:6px">
+          Dieses Smartphone ist aktuell auf <strong>${prof.name}</strong> eingestellt. Deine Sätze und Streaks werden hier gesichert.
+        </p>
+        <button class="btn-secondary" style="margin-top:12px; width:100%" data-action="switch-user">
+          🔄 Zu ${otherName} wechseln
+        </button>
+      </div>
+
       <div class="card card-flush">
         ${SETTINGS_DEF.map((s, i) => {
-          const on = !!state.settings[i];
+          const on = !!(prof.settings && prof.settings[i]);
           return `
             <div class="setting-row">
               <div style="flex:1;min-width:0">
@@ -537,11 +793,13 @@ function renderProfil() {
             </div>`;
         }).join('')}
       </div>
+
       <div class="card">
         <div class="card-title-inv" style="color:var(--sm-navy)">Geräte im Studio</div>
         <div class="gear-tags">${GEAR.map(g => `<span class="gear-tag">${g}</span>`).join('')}</div>
         <p style="font-size:12px;line-height:1.45;color:var(--fg-3);margin-top:11px">Fehlt ein Gerät: Latzug ersetzt Klimmzug, Hackenschmidt die Kniebeuge, Kurzhantelrudern das Langhantelrudern. Die Bewegungsrichtung zählt, nicht das Gerät.</p>
       </div>
+
       <div class="card-yellow">
         <div class="card-title-inv">Die eine Regel</div>
         <p style="font-size:13px;line-height:1.5;margin-top:6px;color:var(--sm-navy-900)">Face Pulls und Außenrotationen werden nie gestrichen, auch nicht wenn die Zeit knapp wird. Die Paddelschulter ist die Verletzung, die Surfer aus dem Wasser holt.</p>
@@ -587,10 +845,26 @@ function renderBottomNav() {
 /* ---------- render + events ---------- */
 
 function renderAll() {
-  document.getElementById('header').innerHTML = renderHeader();
-  document.getElementById('content').innerHTML = renderContent();
-  document.getElementById('rest-bar').innerHTML = renderRestBar();
-  document.getElementById('bottomnav').innerHTML = renderBottomNav();
+  const headerEl = document.getElementById('header');
+  const contentEl = document.getElementById('content');
+  const restBarEl = document.getElementById('rest-bar');
+  const bottomnavEl = document.getElementById('bottomnav');
+
+  if (!state.activeUser) {
+    headerEl.innerHTML = '';
+    headerEl.style.display = 'none';
+    bottomnavEl.style.display = 'none';
+    restBarEl.innerHTML = '';
+    contentEl.innerHTML = renderOnboarding();
+    return;
+  }
+
+  headerEl.style.display = 'block';
+  bottomnavEl.style.display = 'flex';
+  headerEl.innerHTML = renderHeader();
+  contentEl.innerHTML = renderContent();
+  restBarEl.innerHTML = renderRestBar();
+  bottomnavEl.innerHTML = renderBottomNav();
 }
 
 document.getElementById('app').addEventListener('click', (e) => {
@@ -601,6 +875,15 @@ document.getElementById('app').addEventListener('click', (e) => {
   const idx = el.dataset.idx !== undefined ? parseInt(el.dataset.idx, 10) : undefined;
 
   switch (action) {
+    case 'select-profile': {
+      setState({ activeUser: el.dataset.user });
+      break;
+    }
+    case 'switch-user': {
+      const nextUser = state.activeUser === 'timmy' ? 'annika' : 'timmy';
+      setState({ activeUser: nextUser });
+      break;
+    }
     case 'nav': go(el.dataset.screen); break;
     case 'back': back(); break;
     case 'start-session': setState({ screen: 'session' }); break;
@@ -623,9 +906,54 @@ document.getElementById('app').addEventListener('click', (e) => {
     }
     case 'plan-tab': setState({ planTab: el.dataset.tab }); break;
     case 'core-tab': setState({ coreTab: el.dataset.tab }); break;
-    case 'core-start': setState(s => ({ coreDone: !s.coreDone })); break;
-    case 'mob-toggle': setState(s => ({ mobDone: { ...s.mobDone, [idx]: !s.mobDone[idx] } })); break;
-    case 'setting-toggle': setState(s => ({ settings: { ...s.settings, [idx]: !s.settings[idx] } })); break;
+    case 'core-start': {
+      const u = state.activeUser || 'timmy';
+      setState(s => {
+        const prof = s.profiles[u] || DEFAULT_PROFILES[u];
+        return {
+          profiles: {
+            ...s.profiles,
+            [u]: {
+              ...prof,
+              coreDone: !prof.coreDone
+            }
+          }
+        };
+      });
+      break;
+    }
+    case 'mob-toggle': {
+      const u = state.activeUser || 'timmy';
+      setState(s => {
+        const prof = s.profiles[u] || DEFAULT_PROFILES[u];
+        return {
+          profiles: {
+            ...s.profiles,
+            [u]: {
+              ...prof,
+              mobDone: { ...prof.mobDone, [idx]: !prof.mobDone[idx] }
+            }
+          }
+        };
+      });
+      break;
+    }
+    case 'setting-toggle': {
+      const u = state.activeUser || 'timmy';
+      setState(s => {
+        const prof = s.profiles[u] || DEFAULT_PROFILES[u];
+        return {
+          profiles: {
+            ...s.profiles,
+            [u]: {
+              ...prof,
+              settings: { ...prof.settings, [idx]: !prof.settings[idx] }
+            }
+          }
+        };
+      });
+      break;
+    }
     case 'rest-primary': restPrimary(); break;
     case 'rest-dismiss': restDismiss(); break;
   }
